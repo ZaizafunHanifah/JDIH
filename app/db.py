@@ -28,6 +28,9 @@ def init_db():
                 jenis_dokumen TEXT
             )
         """)
+        columns = [row[1] for row in conn.execute("PRAGMA table_info(documents)").fetchall()]
+        if "konten_text_asli" not in columns:
+            conn.execute("ALTER TABLE documents ADD COLUMN konten_text_asli TEXT")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS topics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

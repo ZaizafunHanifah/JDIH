@@ -270,9 +270,11 @@ function formatDate(dateStr) {
 }
 
 async function loadDocuments() {
+    console.log('loadDocuments called, state.q:', state.q, 'state.topic:', state.topic);
     docTableBody.innerHTML = '<tr><td colspan="4"><div class="loading" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div>Memuat dokumen...</div></td></tr>';
 
     const result = await fetchDocuments();
+    console.log('fetchDocuments result:', JSON.stringify({ total: result.pagination?.total, docCount: result.data?.length, firstDocProsedur: result.data?.[0]?.prosedur ? 'present' : 'null/missing' }));
     if (result.aborted) return;
     renderDocumentTable(result.data, result.pagination);
 }
@@ -303,6 +305,42 @@ function renderDocumentTable(data, paginationData) {
         const pdfUrl = doc.url_pdf || '#';
         const jenisBadge = `<span class="badge badge-jenis">${escapeHtml(doc.jenis_dokumen)}</span>`;
         const nomor = doc.nomor || '-';
+        let prosedurHtml = '';
+
+        console.log('doc.prosedur:', doc.prosedur, 'type:', typeof doc.prosedur);
+
+        if (doc.prosedur !== null && doc.prosedur !== undefined) {
+            const status = doc.prosedur.status;
+            console.log('prosedur status:', status, 'jumlah_pasal_total:', doc.prosedur.jumlah_pasal_total);
+            if (status === 'ditemukan') {
+                const pasalHtml = doc.prosedur.pasal_prosedural.map(p => `
+                    <blockquote class="prosedur-blockquote">
+                        <div class="prosedur-label">
+                            <strong>Pasal ${p.nomor_pasal}</strong>
+                            ${p.terpotong ? '<span class="prosedur-badge">Dipotong</span>' : ''}
+                        </div>
+                        <div class="prosedur-isi">${escapeHtml(String(p.isi_pasal).replace(/\n/g, ' '))}</div>
+                        <div class="prosedur-warning">⚠️ Kutipan langsung dari dokumen asli — bukan ringkasan AI. Verifikasi di dokumen lengkap.</div>
+                    </blockquote>
+                `).join('');
+                prosedurHtml = `
+                    <div class="prosedur-box">
+                        <div class="prosedur-heading">📋 Kemungkinan tata cara ditemukan:</div>
+                        ${pasalHtml}
+                    </div>
+                `;
+                console.log('prosedurHtml generated, length:', prosedurHtml.length);
+            } else if (status === 'tidak_ditemukan_prosedur') {
+                prosedurHtml = `<div class="prosedur-info">ℹ️ Dokumen ini relevan, tapi tidak ditemukan struktur tata cara yang jelas. Silakan buka dokumen lengkap.</div>`;
+            } else if (status === 'tidak_ditemukan_pasal' || status === 'tidak_ada_teks') {
+                prosedurHtml = `<div class="prosedur-info">ℹ️ Dokumen ini belum dapat diproses untuk ekstraksi tata cara.</div>`;
+            } else {
+                console.log('Unknown prosedur status:', status);
+            }
+        } else {
+            console.log('doc.prosedur is null/undefined, prosedurHtml stays empty');
+        }
+
         return `
             <tr>
                 <td><span class="doc-number">${startNum + idx}</span></td>
@@ -313,6 +351,7 @@ function renderDocumentTable(data, paginationData) {
                         ${jenisBadge}
                         ${topicsHtml}
                     </div>
+                    ${prosedurHtml}
                 </td>
                 <td style="text-align: center;">
                     <a href="${escapeHtml(pdfUrl)}" target="_blank" rel="noopener" class="btn-download">
@@ -412,6 +451,117 @@ function resetFilters() {
 }
 
 async function init() {
+    const tataCaraInput = document.getElementById('tataCaraInput');
+    const tataCaraBtn = document.getElementById('tataCaraBtn');
+    const tataCaraResult = document.getElementById('tataCaraResult');
+
+    window.handleTataCaraSearch = async function () {
+        const q = tataCaraInput.value.trim();
+        if (!q) {
+            tataCaraResult.innerHTML = '<p class="tata-cara-error">Pertanyaan tidak boleh kosong</p>';
+            return;
+        }
+        tataCaraResult.innerHTML = '<div class="loading" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div>Memuat...</div>';
+        try {
+            const res = await fetch(`/api/documents/tata-cara?q=${encodeURIComponent(q)}`);
+            if (!res.ok) throw new Error('Gagal memuat');
+            const data = await res.json();
+            renderTataCaraResult(data);
+        } catch (err) {
+            tataCaraResult.innerHTML = '<p class="tata-cara-error">Gagal memuat data, coba lagi nanti</p>';
+        }
+    };
+
+    const _PESAN_DEFAULT = 'Tidak ditemukan tata cara yang relevan dengan pertanyaan ini di dokumen yang tersedia. Coba kata kunci lain.';
+    const _MAKS_KOTAK_PASAL = 5;
+
+    function _pesanAtau(data, fallback) {
+        return (data && data.pesan && data.pesan.trim()) ? data.pesan : fallback;
+    }
+
+    function _kartuDokumen(doc, statusClass, statusLabel) {
+        return `
+            <div class="tata-cara-doc">
+                <div class="tata-cara-doc-title">${escapeHtml(doc.judul)}</div>
+                <div class="tata-cara-doc-meta">${escapeHtml(doc.nomor)} | ${doc.tahun}</div>
+                <span class="tata-cara-status ${statusClass}">${statusLabel}</span>
+            </div>
+        `;
+    }
+
+    function renderTataCaraResult(data) {
+        const doc = data.dokumen;
+        let html = '';
+
+        if (data.status === 'ditemukan') {
+            html += _kartuDokumen(doc, 'ditemukan', 'Tata cara ditemukan');
+
+            if (data.diperluas_sinonim === true) {
+                html += `<p class="tata-cara-note">ℹ️ Pencarian diperluas ke istilah yang mirip karena kata yang persis sama tidak ditemukan.</p>`;
+            }
+
+            const pasals = (data.prosedur && data.prosedur.pasal_prosedural) || [];
+            const totalRelevan = (data.prosedur && data.prosedur.jumlah_pasal_relevan) || pasals.length;
+            const tampil = pasals.slice(0, _MAKS_KOTAK_PASAL);
+
+            tampil.forEach(p => {
+                const dipotongBadge = p.terpotong
+                    ? `<span class="prosedur-badge">Dipotong</span>`
+                    : '';
+                html += `
+                    <div class="prosedur-box">
+                        <div class="prosedur-heading">Pasal ${escapeHtml(p.nomor_pasal)} ${dipotongBadge}</div>
+                        <div class="prosedur-blockquote">
+                            <div class="prosedur-isi">${escapeHtml(p.isi_pasal).replace(/\n/g, ' ')}</div>
+                            <div class="prosedur-warning">⚠️ Kutipan langsung dari dokumen asli — bukan ringkasan AI.</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (totalRelevan > _MAKS_KOTAK_PASAL) {
+                html += `
+                    <div class="prosedur-info">
+                        Ditemukan ${totalRelevan} pasal relevan.
+                        <a href="${escapeHtml(doc.url_pdf)}" target="_blank" rel="noopener">Unduh dokumen lengkap (PDF)</a> untuk melihat semuanya.
+                    </div>
+                `;
+            }
+
+        } else if (data.status === 'hanya_dokumen_perubahan') {
+            html += `
+                <div class="prosedur-info">
+                    ${escapeHtml(_pesanAtau(data, 'Tidak ditemukan tata cara langsung. Dokumen terkait berikut adalah peraturan perubahan.'))}
+                </div>
+            `;
+            if (doc) {
+                html += `<div class="tata-cara-doc">
+                    <a class="tata-cara-doc-title" href="${escapeHtml(doc.url_pdf)}" target="_blank" rel="noopener">${escapeHtml(doc.judul)}</a>
+                    <div class="tata-cara-doc-meta">${escapeHtml(doc.nomor)} | ${doc.tahun}</div>
+                </div>`;
+            }
+
+        } else if (data.status === 'tidak_ditemukan') {
+            html += `<p class="tata-cara-error">${escapeHtml(_pesanAtau(data, _PESAN_DEFAULT))}</p>`;
+
+        } else if (doc) {
+            html += _kartuDokumen(doc, 'dokumen_ditemukan_tanpa_prosedur', 'Dokumen ditemukan, tanpa tata cara');
+            if (data.prosedur && data.prosedur.pesan) {
+                html += `<div class="prosedur-info">${escapeHtml(data.prosedur.pesan)}</div>`;
+            }
+
+        } else {
+            html += `<p class="tata-cara-error">${escapeHtml(_pesanAtau(data, _PESAN_DEFAULT))}</p>`;
+        }
+
+        tataCaraResult.innerHTML = html;
+    }
+
+    tataCaraBtn.addEventListener('click', handleTataCaraSearch);
+    tataCaraInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleTataCaraSearch();
+    });
+
     const [topics, jenisList] = await Promise.all([
         fetchTopics(),
         fetchJenisDokumen()

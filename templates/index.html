@@ -33,10 +33,20 @@
             --badge-topic: #2E7D32;
             --badge-topic-bg: #E8F5E9;
             --badge-topic-border: #C8E6C9;
-            --btn-download: #F57C00;
-            --btn-download-hover: #EF6C00;
-            --btn-download-bg: #FFF3E0;
-        }
+        --btn-download: #F57C00;
+        --btn-download-hover: #EF6C00;
+        --btn-download-bg: #FFF3E0;
+        --prosedur-border: #2E7D32;
+        --prosedur-bg: #F1F8E9;
+        --prosedur-text: #424242;
+        --prosedur-muted: #757575;
+        --prosedur-warning-bg: #FFF8E1;
+        --prosedur-warning-text: #F57F17;
+        --prosedur-badge-bg: #FFF3E0;
+        --prosedur-badge-text: #E65100;
+        --prosedur-info-bg: #E3F2FD;
+        --prosedur-info-text: #1565C0;
+    }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -209,6 +219,111 @@
             border-radius: var(--radius-pill);
             background: rgba(229, 57, 53, 0.12);
         }
+        .topic-chip.active .count {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Tata cara search section */
+        .tata-cara-section {
+            margin: 24px 0;
+            padding: 24px;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-sm);
+        }
+        .tata-cara-heading {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--prosedur-border);
+            margin-bottom: 12px;
+        }
+        .tata-cara-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .tata-cara-input {
+            flex: 1;
+            max-width: none;
+            min-width: 0;
+        }
+        .tata-cara-btn {
+            padding: 12px 24px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-light);
+            background: var(--prosedur-border);
+            border: none;
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            transition: all var(--transition);
+            white-space: nowrap;
+        }
+        .tata-cara-btn:hover {
+            background: #1B5E20;
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        }
+        .tata-cara-result {
+            margin-top: 16px;
+        }
+        .tata-cara-error {
+            color: var(--primary);
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            background: var(--primary-bg);
+            border-radius: var(--radius-sm);
+        }
+        .tata-cara-doc {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: var(--prosedur-bg);
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--prosedur-border);
+        }
+        .tata-cara-doc-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+        a.tata-cara-doc-title {
+            color: var(--prosedur-border);
+            text-decoration: underline;
+        }
+        a.tata-cara-doc-title:hover {
+            color: #1B5E20;
+        }
+        .tata-cara-note {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 10px 0 0;
+        }
+        .tata-cara-doc-meta {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        .tata-cara-status {
+            display: inline-flex;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: var(--radius-pill);
+        }
+        .tata-cara-status.ditemukan {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+        .tata-cara-status.dokumen_ditemukan_tanpa_prosedur {
+            background: var(--prosedur-info-bg);
+            color: var(--prosedur-info-text);
+        }
+        .tata-cara-status.tidak_ditemukan {
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
         .topic-chip.active .count {
             background: rgba(255, 255, 255, 0.25);
         }
@@ -411,9 +526,70 @@
             color: var(--text-light);
             box-shadow: 0 4px 12px rgba(245, 124, 0, 0.3);
         }
-        .btn-download svg { width: 14px; height: 14px; }
+.btn-download svg { width: 14px; height: 14px; }
 
-        .empty-state {
+/* Prosedur citation boxes */
+.prosedur-box {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+}
+.prosedur-heading {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--prosedur-border);
+    margin-bottom: 8px;
+}
+.prosedur-blockquote {
+    border-left: 4px solid var(--prosedur-border);
+    background: var(--prosedur-bg);
+    padding: 10px 14px;
+    margin: 8px 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--prosedur-text);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.prosedur-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-size: 0.82rem;
+}
+.prosedur-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: var(--radius-pill);
+    background: var(--prosedur-badge-bg);
+    color: var(--prosedur-badge-text);
+    border: 1px solid #FFD8A6;
+}
+.prosedur-isi {
+    color: var(--prosedur-text);
+    word-wrap: break-word;
+}
+.prosedur-warning {
+    font-size: 0.72rem;
+    color: var(--prosedur-warning-text);
+    margin-top: 6px;
+    padding: 4px 8px;
+    background: var(--prosedur-warning-bg);
+    border-radius: var(--radius-sm);
+}
+.prosedur-info {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: var(--prosedur-info-text);
+    padding: 8px 12px;
+    background: var(--prosedur-info-bg);
+    border-radius: var(--radius-sm);
+}
+
+.empty-state {
             text-align: center;
             padding: 60px 20px;
             color: var(--text-muted);
@@ -511,6 +687,22 @@
     </header>
 
     <main class="container">
+        <section class="tata-cara-section" aria-label="Tanya tata cara">
+            <h3 class="tata-cara-heading">Tanya Tata Cara</h3>
+            <div class="tata-cara-input-wrapper">
+                <input
+                    type="text"
+                    id="tataCaraInput"
+                    class="search-box tata-cara-input"
+                    placeholder="Tanyakan tata cara/prosedur (misal: cara bayar pajak, syarat pengajuan)"
+                    autocomplete="off"
+                    aria-label="Pertanyaan tata cara"
+                >
+                <button id="tataCaraBtn" class="tata-cara-btn" type="button">Cari</button>
+            </div>
+            <div id="tataCaraResult" class="tata-cara-result"></div>
+        </section>
+
         <section class="filter-panel" aria-label="Panel filter pencarian">
             <div class="filter-row">
                 <div class="search-wrapper">
