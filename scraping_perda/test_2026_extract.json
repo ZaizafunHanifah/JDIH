@@ -1,0 +1,24 @@
+[
+  {
+    "id": 4848,
+    "status": "ok",
+    "ukuran_kb": 692.3,
+    "jumlah_halaman": 13,
+    "karakter": 21468
+  },
+  {
+    "id": 4894,
+    "status": "ok",
+    "ukuran_kb": 911.3,
+    "jumlah_halaman": 42,
+    "karakter": 77097
+  },
+  {
+    "id": 4947,
+    "status": "teks_kosong",
+    "ukuran_kb": 25149.3,
+    "jumlah_halaman": 1458,
+    "karakter": 0,
+    "alasan": "PDF sangat besar (1458 halaman, batas 300), dilewati"
+  }
+]

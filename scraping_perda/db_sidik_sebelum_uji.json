@@ -1,0 +1,19 @@
+{
+  "documents": {
+    "n": 469,
+    "hash": "9b286620ee0ac1d730e5bb2a89c784b1d632c7cc0cfc5e0e56fcda249dd7d78d"
+  },
+  "topics": {
+    "n": 10,
+    "hash": "600d84cde020cb1b54b1b5d0e8406b9bd8bb2fe2cf537d8dd32088c0c00a9ab6"
+  },
+  "document_topics": {
+    "n": 353,
+    "hash": "a47adcc45c5085f91062ff57a2626e7be93c357ef9616f9a997eeca9ec7bc491"
+  },
+  "jumlah": 469,
+  "per_jenis": {
+    "Peraturan Bupati": 386,
+    "Peraturan Daerah": 83
+  }
+}

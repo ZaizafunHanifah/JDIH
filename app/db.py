@@ -31,6 +31,17 @@ def init_db():
         columns = [row[1] for row in conn.execute("PRAGMA table_info(documents)").fetchall()]
         if "konten_text_asli" not in columns:
             conn.execute("ALTER TABLE documents ADD COLUMN konten_text_asli TEXT")
+        # kolom untuk produk hukum Perrygara (Perda): status hukum & relasi
+        # Mencabut/Dicabut. Nullable - dokumen Perbup lama bernilai NULL.
+        if "status_hukum" not in columns:
+            conn.execute("ALTER TABLE documents ADD COLUMN status_hukum TEXT")
+        if "catatan_relasi" not in columns:
+            conn.execute("ALTER TABLE documents ADD COLUMN catatan_relasi TEXT")
+        # identifier unik lintas jenis dokumen, mis. "1_2020" (Perbup) vs
+        # "perda_1_2020" (Perda). Tanpa kolom ini prefix tidak tersimpan dan
+        # nomor+tahun Perbup/Perda jadi bentrok.
+        if "nomor_tahun" not in columns:
+            conn.execute("ALTER TABLE documents ADD COLUMN nomor_tahun TEXT")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS topics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

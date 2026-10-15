@@ -21,7 +21,7 @@ Project ini membangun demo aplikasi pencarian produk hukum dengan fitur utama be
 
 ### 1.3 Posisi Project
 
-Project ini merupakan **layer tambahan atau demo yang terpisah dari web JDIH resmi**. Aplikasi tidak membaca atau menulis data JDIH produksi. Database saat ini berisi **386 dokumen Peraturan Bupati Kabupaten Banyumas asli**, diimpor dari hasil pengumpulan data skripsi penulis (bukan hasil karangan/generate). Karena itu, tautan PDF dan isi dokumen dalam demo mencerminkan data nyata namun tidak boleh dianggap sebagai dokumen hukum resmi tanpa verifikasi lebih lanjut.
+Project ini merupakan **layer tambahan atau demo yang terpisah dari web JDIH resmi**. Aplikasi tidak membaca atau menulis data JDIH produksi. Database saat ini berisi **407 dokumen** yang terdiri dari **327 Peraturan Bupati** dan **80 Peraturan Daerah** Kabupaten Banyumas asli, diimpor dari hasil pengumpulan data skripsi penulis (bukan hasil karangan/generate). Di antaranya terdapat **9.229 pasal** dan **5.162 prosedural** (55,9%). Karena itu, tautan PDF dan isi dokumen dalam demo mencerminkan data nyata namun tidak boleh dianggap sebagai dokumen hukum resmi tanpa verifikasi lebih lanjut.
 
 ## 2. Tech Stack
 
@@ -90,7 +90,7 @@ Alur umum pengguna adalah sebagai berikut:
 
 FTS5 dipilih karena kebutuhan utama adalah pencarian teks yang lebih baik daripada `LIKE`, tetapi project tetap ingin berjalan dengan satu database dan tanpa layanan tambahan seperti Elasticsearch. FTS5 membuat indeks terbalik untuk kolom teks, sehingga pencarian kata pada judul dan isi dapat dilakukan dengan `MATCH` dan dapat diurutkan berdasarkan relevansi menggunakan `bm25`.
 
-Elasticsearch atau layanan sejenis lebih cocok ketika data sangat besar, kueri sangat kompleks, atau diperlukan distribusi dan analitik pencarian tingkat lanjut. Untuk **386 dokumen asli** dan kebutuhan demonstrasi saat ini, FTS5 memberikan manfaat yang cukup dengan biaya operasional yang jauh lebih rendah.
+Elasticsearch atau layanan sejenis lebih cocok ketika data sangat besar, kueri sangat kompleks, atau diperlukan distribusi dan analitik pencarian tingkat lanjut. Untuk **407 dokumen asli** dan kebutuhan demonstrasi saat ini, FTS5 memberikan manfaat yang cukup dengan biaya operasional yang jauh lebih rendah.
 
 ### 3.3 Sinkronisasi FTS dengan Trigger
 
@@ -106,7 +106,9 @@ Dengan trigger ini, perubahan pada tabel `documents` secara otomatis diikuti ole
 
 Database disimpan dalam file `jdih.db`. Skema dibuat oleh `app/db.py` saat aplikasi dimulai, sedangkan data diisi melalui dua alternatif:
 - `seed.py` — untuk data dummy (150 dokumen, 5 jenis dokumen) — digunakan untuk testing cepat.
-- `import_real_data.py` — untuk **data asli (386 dokumen Peraturan Bupati, 1 jenis dokumen)** — digunakan untuk demo/presentasi.
+- `import_real_data.py` — untuk **data asli (327 dokumen Peraturan Bupati)** — digunakan untuk impor Perbup.
+- `import_perda.py` — untuk **data asli (80 dokumen Peraturan Daerah)** — digunakan untuk impor Perda (INSERT, tidak menghapus data Perbup).
+- `import_raw_content.py` — untuk mengisi kolom `konten_text_asli` pada Perbup dari `raw_content_export.csv`.
 
 ### 4.1 Tabel `documents`
 
@@ -121,6 +123,10 @@ Tabel ini menyimpan metadata dan teks utama setiap produk hukum.
 | `url_pdf` | `TEXT` | Tautan ke berkas PDF. Pada data asli, tautan berasal dari scraping JDIH resmi dan mengarah ke domain `jdih.banyumaskab.go.id`; namun belum diverifikasi seluruhnya masih aktif. |
 | `konten_text` | `TEXT` | Ringkasan atau teks dokumen yang diindeks untuk pencarian. Pada data asli, 47 dokumen memiliki konten kosong karena gagal diekstrak dari PDF sumber (kemungkinan PDF hasil scan/gambar). |
 | `jenis_dokumen` | `TEXT` | Jenis dokumen yang dapat difilter, misalnya `Peraturan Bupati`. Kolom ini dibuat generik agar mudah dipetakan ke sumber data lain. |
+| `konten_text_asli` | `TEXT` | Salinan teks mentah hasil ekstraksi PDF (belum dibersihkan). Dipakai untuk ekstraksi pasal/prosedur dan sebagai sumber data cadangan ke FTS. |
+| `status_hukum` | `TEXT` | Status berlakunya dokumen: `Berlaku` atau `Tidak Berlaku`. Hanya terisi untuk **Peraturan Daerah** (data Perbup tidak memiliki kolom ini saat awal impor). Dapat bernilai NULL. |
+| `catatan_relasi` | `TEXT` | Teks mentah dari JDIH tentang mencabut/mengubah dokumen ini (mis. "Dicabut dengan Peraturan Bupati ..."). **46 dari 83 Perda** memiliki catatan relasi. Belum dipetakan ke relasi terstruktur. Dapat bernilai NULL. |
+| `nomor_tahun` | `TEXT` | Identifier unik lintas jenis dokumen. Untuk Perbup memakai format `{nomor}_{tahun}` (mis. `3_2020`); untuk Perda memakai prefix `perda_` (mis. `perda_1_2020`) agar tidak bentrok dengan Perbup yang nomor+tahunnya sama. |
 
 ### 4.2 Tabel `topics`
 
@@ -179,6 +185,7 @@ Endpoint ini mengambil daftar dokumen dengan pencarian, filter, pengurutan, dan 
 | `topic` | Tidak | - | Filter berdasarkan ID topik. |
 | `jenis` | Tidak | - | Filter berdasarkan nilai `jenis_dokumen`. |
 | `tahun` | Tidak | - | Filter tahun terbit, dibatasi antara 2000 dan 2030. |
+| `status` | Tidak | - | Filter `status_hukum` (Berlaku / Tidak Berlaku). Hanya berlaku untuk Peraturan Daerah; dokumen Perbup selalu NULL. |
 | `sort` | Tidak | `terbaru` | `terbaru` mengurutkan tanggal turun; `relevansi` mengurutkan berdasarkan `bm25` hanya jika `q` diisi. |
 | `page` | Tidak | `1` | Halaman hasil, minimal 1. |
 | `limit` | Tidak | `10` | Jumlah dokumen per halaman, antara 1 dan 100. |
@@ -201,6 +208,8 @@ GET /api/documents?q=RKPD&topic=4&jenis=Peraturan%20Bupati&tahun=2023&sort=relev
       "tanggal_terbit": "2023-01-01",
       "jenis_dokumen": "Peraturan Bupati",
       "url_pdf": "https://jdih.banyumaskab.go.id/downloadprodukhukum/xxx",
+      "status_hukum": null,
+      "catatan_relasi": null,
       "topics": [
         {
           "id": 4,
@@ -311,13 +320,41 @@ GET /api/jenis-dokumen
 
 ```json
 [
-  { "jenis": "Peraturan Bupati", "jumlah": 386 }
+  { "jenis": "Peraturan Bupati", "jumlah": 327 },
+  { "jenis": "Peraturan Daerah", "jumlah": 80 }
 ]
 ```
 
-**Kegunaan:** mengisi dropdown filter jenis dokumen dan memberi informasi distribusi jenis dokumen. Pada data asli, hanya ada satu jenis dokumen (Peraturan Bupati).
+**Kegunaan:** mengisi dropdown filter jenis dokumen dan memberi informasi distribusi jenis dokumen. Pada data asli, terdapat dua jenis dokumen — Peraturan Bupati (327) dan Peraturan Daerah (80).
 
-### 5.5 `GET /api/tahun`
+### 5.5 `GET /api/status-hukum`
+
+Endpoint ini mengembalikan daftar nilai unik `status_hukum` yang ada di database beserta jumlah dokumen masing-masing. Hanya dokumen Peraturan Daerah yang memiliki `status_hukum`; dokumen Peraturan Bupati selalu NULL dan tidak dihitung.
+
+**Parameter:** tidak ada.
+
+**Contoh request:**
+
+```http
+GET /api/status-hukum
+```
+
+**Contoh response:**
+
+```json
+{
+  "data": [
+    { "status": "Berlaku", "jumlah": 52 },
+    { "status": "Tidak Berlaku", "jumlah": 28 }
+  ],
+  "total_status": 2,
+  "total_dokumen_terfilter": 80
+}
+```
+
+**Kegunaan:** mengisi dropdown filter status hukum pada frontend dan memberi informasi distribusi status. Dapat digunakan bersama parameter `status` pada `GET /api/documents`.
+
+### 5.6 `GET /api/tahun`
 
 Endpoint ini mengambil daftar tahun yang tersedia berdasarkan `tanggal_terbit`.
 
@@ -403,16 +440,19 @@ Kedua mekanisme ini penting karena permintaan API dapat selesai dalam urutan yan
 
 ## 7. Data Saat Ini
 
-Data saat ini adalah **data asli 386 dokumen Peraturan Bupati Kabupaten Banyumas**, diimpor dari hasil pengumpulan data skripsi penulis melalui `import_real_data.py` (bukan data dummy dari `seed.py`).
+Data saat ini adalah **data asli 407 dokumen** yang terdiri dari **327 Peraturan Bupati** dan **80 Peraturan Daerah** Kabupaten Banyumas, diimpor dari hasil pengumpulan data skripsi penulis melalui `import_real_data.py` (Perbup) dan `import_perda.py` (Perda) — bukan data dummy dari `seed.py`. Totalnya terdapat **9.229 pasal** dan **5.162 prosedural** (55,9%).
 
 ### 7.1 Jumlah Dokumen
 
-| Jenis dokumen | Jumlah |
-|---|---:|
-| Peraturan Bupati | **386** |
-| **Total** | **386** |
+| Jenis dokumen | Dokumen dengan pasal | Dokumen total | Jumlah pasal | Prosedural | Rasio prosedural |
+|---|---:|---:|---:|---:|---:|
+| Peraturan Bupati | 327 | 386 | 6.455 | 3.337 | 51,7% |
+| Peraturan Daerah | 80 | 83 | 2.774 | 1.825 | 66,1% |
+| **Total** | **407** | **469** | **9.229** | **5.162** | **55,9%** |
 
-Semua 386 dokumen berjenis **Peraturan Bupati**. Jenis dokumen lain seperti Perda, SK, SE, Perdes yang ada pada versi dummy **tidak dipakai** pada versi data asli ini.
+> **Keterangan:** "dokumen dengan pasal" berarti dokumen yang berhasil diekstrak setidaknya 1 pasal oleh `extract_pasal`. Dokumen yang tidak ada pasalnya (62 dokumen) biasanya berupa dokumen pendahuluan atau tidak terstruktur pasal-nya. Perbup memiliki 47 dokumen tanpa `konten_text_asli` (gagal ekstraksi PDF); 327 dari 339 yang tersisa memiliki pasal. Perda memiliki 3 dokumen tanpa pasal.
+
+Pada data asli, terdapat dua jenis dokumen: **Peraturan Bupati** (386 dokumen) dan **Peraturan Daerah** (83 dokumen).
 
 ### 7.2 Topik
 
@@ -431,8 +471,9 @@ Terdapat 10 topik yang didefinisikan berdasarkan kata kunci pada judul dokumen:
 | 9 | Pertanian dan Lingkungan Hidup | 7 |
 | 10 | Sosial dan Kemasyarakatan | 55 |
 
-Jumlah relasi topik (315) lebih besar dari jumlah dokumen (386) karena satu dokumen dapat memiliki lebih dari satu topik.
-**146 dari 386 dokumen (37,8%) tidak memiliki topik** karena judulnya tidak match kata kunci kategori manapun.
+Jumlah relasi topik (**353**) lebih besar dari jumlah dokumen (469) karena satu dokumen dapat memiliki lebih dari satu topik. **183 dari 469 dokumen (39,0%) tidak memiliki topik** karena judulnya tidak match kata kunci kategori manapun (139 Perbup + 44 Perda).
+
+Distribusi topik hanya dihitung dari judul dokumen untuk Peraturan Bupati (327 dari 386 dokumen memiliki topik). Peraturan Daerah memiliki 39 dokumen dengan topik dan 44 tanpa topik.
 
 ### 7.3 Rentang Tahun
 
@@ -448,7 +489,8 @@ Data asli mencakup tahun **2020 sampai 2024**, dengan total 5 tahun:
 
 ### 7.4 Kualitas Konten
 
-- **47 dokumen (12,2%)** memiliki `konten_text` kosong karena gagal diekstrak dari PDF sumber (kemungkinan PDF berupa scan/gambar tanpa lapisan teks). Dokumen ini tidak bisa ditemukan melalui full-text search pada isi, hanya melalui judul.
+- **47 dokumen Perbup (12,2% dari 386)** memiliki `konten_text` kosong karena gagal diekstrak dari PDF sumber (kemungkinan PDF berupa scan/gambar tanpa lapisan teks). Dokumen ini tidak bisa ditemukan melalui full-text search pada isi, hanya melalui judul.
+- **Peraturan Daerah (83 dokumen)**: 92 ditemukan di JDIH, 9 gagal ekstraksi teks (PDF scan tanpa layer teks), 83 berhasil diimpor dengan `konten_text_asli` terisi penuh.
 - `url_pdf` diambil dari hasil scraping asli JDIH, mengarah ke domain resmi, namun belum diverifikasi seluruhnya masih aktif.
 
 ## 7.5 Cara Kategorisasi Topik pada Data Asli
@@ -479,10 +521,56 @@ Proses:
 ## 7.6 Keterbatasan Data Asli
 
 1. **Tanggal terbit placeholder**: `tanggal_terbit` menggunakan format `{tahun}-01-01` karena data sumber hanya memiliki informasi tahun, bukan tanggal lengkap. Akibatnya, pengurutan "terbaru" (`tanggal_terbit DESC`) **dalam tahun yang sama tidak benar-benar berurutan berdasarkan tanggal asli**.
-2. **Konten kosong**: 47 dokumen tidak bisa di-full-text-search karena `konten_text` kosong (gagal ekstraksi dari PDF scan/gambar). Hanya judul yang terindeks.
-3. **Dokumen tanpa topik**: 146 dokumen (37,8%) tidak muncul saat filter topik apapun dipakai karena judul tidak match kata kunci kategori manapun.
+2. **Konten kosong**: 47 dokumen Perbup (12,2%) tidak bisa di-full-text-search karena `konten_text` kosong (gagal ekstraksi dari PDF scan/gambar). Hanya judul yang terindeks.
+3. **Dokumen tanpa topik**: 183 dari 469 dokumen (39,0%) tidak muncul saat filter topik apapun dipakai karena judul tidak match kata kunci kategori manapun (139 Perbup + 44 Perda).
 4. **URL PDF belum diverifikasi**: `url_pdf` diambil dari hasil scraping asli, tautan mengarah ke domain JDIH resmi, namun belum diverifikasi seluruhnya masih aktif/tersedia.
-5. **Satu jenis dokumen**: Semua 386 dokumen berjenis "Peraturan Bupati". Filter jenis dokumen pada frontend hanya menampilkan satu opsi, sehingga filter ini efektif tidak berfungsi sebagai pemisah pada data asli ini.
+5. **Topik berbasis judul saja**: Klasifikasi topik dilakukan dengan mencocokkan kata kunci pada **judul** saja, bukan isi dokumen. Dokumen dengan judul tidak informatif dapat gagal diklasifikasikan.
+
+## 7.7 Data Peraturan Daerah
+
+Peraturan Daerah (Perda) ditambahkan ke database sebagai data tambahan di luar skop Peraturan Bupati. Berikut rincian pengelolaannya.
+
+### 7.7.1 Asal Usul dan Jumlah Data
+
+- **83 dokumen Peraturan Daerah** tahun **2020–2026** diimpor ke `jdih.db`.
+- **92 dokumen** ditemukan di situs JDIH Banyumas; **9 dokumen** gagal ekstraksi teks (kemungkinan PDF hasil scan/gambar tanpa layer teks); **83 dokumen** berhasil diekstrak dan diimpor dengan `konten_text_asli` terisi penuh.
+- **9.229 pasal** terekstrak dari ke-407 dokumen (Perbup 6.455 + Perda 2.774); **5.162 prosedural** (55,9%).
+
+### 7.7.2 Proses Scraping
+
+Scraping dilakukan oleh script di folder `scraping_perda/` dengan alur berikut:
+
+1. **Daftar per tahun**: `scrape_metadata.py` mengunjungi halaman listing JDIH untuk setiap tahun 2020–2026, mengumpulkan metadata (ID dokumen, nomor, tahun, judul, URL PDF). Target awal: **92 dokumen**.
+2. **Halaman detail**: untuk setiap dokumen, metadata tambahan (termasuk `status_hukum` dan `catatan_relasi` bila tersedia) diekstrak dari halaman detail masing-masing.
+3. **Unduh PDF**: `download_extract.py` mengunduh PDF dari `/downloadprodukhukum/{doc_id}` dengan `requests` (stream=True).
+4. **Ekstraksi teks**: `pdfplumber` digunakan untuk mengekstrak teks dari PDF. Sebelum memproses seluruh file, dilakukan **sampling 3 halaman pertama** untuk mendeteksi PDF hasil scan (tanpa layer teks) — dokumen semacam itu langsung ditandai gagal.
+5. **Hapus PDF setelah ekstrak**: `proses_semua.py` **langsung menghapus file PDF** setelah teks diekstrak (baik sukses maupun gagal). Hal ini dilakukan karena ruang disk terbatas (~6 GB pada drive D:). Hanya file teks hasil ekstraksi yang disimpan di `scraping_perda/text_raw/`.
+6. **Checkpoint**: setiap dokumen yang selesai dicatat dalam `checkpoint_ekstraksi.json`, sehingga proses dapat dilanjutkan tanpa mengulang dokumen yang sudah selesai.
+
+### 7.7.3 Batas yang Dipakai
+
+| Batas | Nilai | Keterangan |
+|---|---|---|
+| `BATAS_HALAMAN` | 1000 | PDF dengan lebih dari 1000 halaman dilewati (terverifikasi: ada PDF 1458 halaman). |
+| `BATAS_WAKTU_DETIK` | 180 | Timeout 180 detik per dokumen; dokumen melebihi limit ditandai dan dapat dicoba ulang. |
+| `HALAMAN_SAMPEL` | 3 | Jumlah halaman sampel untuk mendeteksi PDF scan. |
+| `MIN_FREE_GB` | 1.5 | Proses berhenti jika sisa disk di bawah 1,5 GB. |
+| `DELAY` | 1.5s | Jeda antar-request untuk menghindari beban berlebih pada server JDIH. |
+
+### 7.7.4 Proses Import ke Database
+
+`import_perda.py` menambahkan 83 dokumen Perda ke `jdih.db` dengan mekanisme berikut:
+
+- **INSERT (bukan REPLACE)**: data Perbup tidak dihapus/ditimpa.
+- **Prefix `perda_` pada `nomor_tahun`**: identifier Perda memakai format `perda_{nomor}_{tahun}` (mis. `perda_1_2020`) untuk mencegah bentrok dengan identifier Perbup yang sama.
+- **Topik dari kolom CSV**: topik tidak dihitung ulang; diload langsung dari kolom `topik` di `perda_export.csv`.
+- **Idempoten**: dokumen yang identifier-nya sudah ada dilewati (dicek via `nomor_tahun` atau `jenis_dokumen + nomor + tahun`).
+- **`status_hukum` dan `catatan_relasi`**: diisi dari CSV (kosongkan/NULL bila tidak tersedia). 46 dari 83 Perda memiliki `catatan_relasi`.
+
+### 7.7.5 Status Hukum dan Catatan Relasi
+
+- **`status_hukum`**: hanya tersedia untuk Peraturan Daerah (83 dokumen). Nilai: `Berlaku` (52) atau `Tidak Berlaku` (28), sisanya NULL. Dokumen Peraturan Bupati tidak memiliki kolom ini (selalu NULL).
+- **`catatan_relasi`**: berisi teks mentah dari JDIH tentang pencabutan/perubahan. **46 dari 83 Perda** memiliki catatan relasi (mis. "Dicabut dengan Peraturan Daerah ..."). Belum diparse menjadi relasi terstruktur (lihat Bab 8.4).
 
 ## 8. Keterbatasan & Pengembangan Lanjutan
 
@@ -490,8 +578,8 @@ Proses:
 
 Beberapa fitur belum dimasukkan karena data yang diperlukan belum tersedia atau karena cakupannya berada di luar demo:
 
-- **Status hukum berlaku/dicabut.** Tabel dokumen belum memiliki kolom status, tanggal mulai berlaku, tanggal dicabut, atau alasan pencabutan. Menambahkan status tanpa sumber data resmi berisiko memberikan informasi hukum yang salah.
-- **Relasi antar peraturan.** Relasi seperti mengubah, mencabut, melaksanakan, atau ditindaklanjuti oleh peraturan lain belum dibuat karena data relasi resmi belum tersedia.
+- **Status hukum berlaku/dicabut.** Kolom `status_hukum` sudah ditambahkan (lihat Bab 4.1), tetapi hanya terisi untuk **Peraturan Daerah** (83 dokumen). Dokumen Peraturan Bupati tidak memiliki status karena data sumbernya tidak mencakupnya.
+- **Relasi antar peraturan terstruktur.** Kolom `catatan_relasi` sudah tersedia sebagai teks mentah (46 dari 83 Perda), tetapi **belum diparse** menjadi relasi terstruktur (tabel `related_documents` dengan tipe relasi). Perlu parsing ekstraksi referensi dokumen dari teks bebas.
 - **Pencarian semantik.** Pencarian saat ini berbasis kata/istilah melalui FTS5, bukan pencarian berdasarkan makna. Pencarian semantik memerlukan embedding, model bahasa, dan infrastruktur vector search yang belum menjadi kebutuhan demo.
 - **Administrasi dokumen.** CRUD, autentikasi, autorisasi, audit trail, dan validasi unggahan belum disediakan karena project difokuskan pada pengalaman pencarian pengguna.
 
@@ -510,22 +598,43 @@ Jika project dikembangkan lebih jauh, beberapa langkah yang dapat dipertimbangka
 
 ### 8.3 Status Integrasi Data JDIH Asli
 
-**Sudah selesai** untuk data Peraturan Bupati:
+**Sudah selesai** untuk kedua jenis dokumen:
 
 1. ✅ Data dokumen diekspor dari sumber JDIH resmi (hasil scraping skripsi).
-2. ✅ Kolom dipetakan ke `judul`, `nomor`, `tanggal_terbit` (placeholder), `jenis_dokumen`, `url_pdf`, `konten_text`.
-3. ✅ Nilai `jenis_dokumen` dinormalisasi ke "Peraturan Bupati".
+2. ✅ Kolom dipetakan ke `judul`, `nomor`, `tanggal_terbit` (placeholder), `jenis_dokumen`, `url_pdf`, `konten_text`, `konten_text_asli`, `nomor_tahun`.
+3. ✅ Nilai `jenis_dokumen` dinormalisasi ke "Peraturan Bupati" dan "Peraturan Daerah".
 4. ✅ Daftar 10 topik resmi dibuat dan diisi ke tabel `topics`.
 5. ✅ Relasi `document_topics` diisi berdasarkan klasifikasi otomatis kata kunci pada judul.
-6. ✅ Proses `seed.py` digantikan oleh `import_real_data.py` untuk impor data asli.
+6. ✅ `init_db()` pada `app/db.py` menambah kolom `konten_text_asli`, `status_hukum`, `catatan_relasi`, dan `nomor_tahun` secara otomatis jika belum ada.
 7. ✅ FTS5 tersinkronisasi otomatis melalui trigger setelah impor.
-8. ✅ Keakuratan pencarian, filter, tautan PDF, dan pagination diuji.
+8. ✅ Endpoint `GET /api/status-hukum` dan parameter `status` pada `GET /api/documents` tersedia.
+9. ✅ `import_perda.py` menambahkan 80 dokumen Perda (dari 83 yang berhasil) dengan prefix `perda_` pada `nomor_tahun`; tidak menghapus data Perbup.
 
 **Belum dilakukan / Catatan lanjutan:**
-- Hanya jenis "Peraturan Bupati" yang diimpor (386 dokumen). Jenis lain (Perda, SK, SE, Perdes) belum diimpor.
 - Verifikasi status aktif/tersedia tautan PDF belum dilakukan menyeluruh.
-- Kualitas ekstraksi teks PDF bisa ditingkatkan (47 dokumen kosong).
+- Kualitas ekstraksi teks PDF bisa ditingkatkan (47 dokumen Perbup kosong).
 - Klasifikasi topik berbasis kata kunci judul bisa dikembangkan ke klasifikasi berbasis isi dokumen (konten_text) atau model ML jika diperlukan.
+- Relasi antar peraturan (`catatan_relasi`) belum diparse menjadi struktur terrelasi.
+
+### 8.4 Keterbatasan
+
+Berikut keterbatasan teknis dan data yang perlu diperhatikan:
+
+1. **Status hukum hanya tersedia untuk Peraturan Daerah, bukan Peraturan Bupati.** Kolom `status_hukum` diisi hanya untuk Perda (83 dokumen). Dokumen Perbup (386) selalu NULL karena data sumbernya tidak mencakup status berlaku/cabut. Filter `status` pada `GET /api/documents` tidak akan berdampak pada dokumen Perbup.
+2. **Catatan relasi belum diparse menjadi relasi terstruktur.** Kolom `catatan_relasi` berisi teks mentah bebas (mis. "Dicabut dengan Peraturan Daerah Nomor 5 Tahun 2022"). Belum ada ekstraksi entitas, referensi dokumen, atau tabel `related_documents` untuk menghubungkan dokumen secara terstruktur.
+3. **47 dokumen Perbup dan 9 Perda tidak punya teks.** 47 dokumen Perbup gagal ekstraksi PDF (scan/gambar tanpa layer teks); 9 Perda juga gagal (dari 92 yang ditemukan, hanya 83 yang berhasil). Dokumen-dokumen ini tidak bisa dilakukan full-text search pada isi, hanya pada judul.
+4. **53% Perda dan 36% Perbup belum punya topik.** Dari 83 Perda, 44 dokumen (53%) tidak memiliki topik karena judul tidak match kata kunci. Dari 386 Perbup, 139 dokumen (36%) juga tidak memiliki topik.
+5. **Kata kunci topik pernah menimbulkan false positive karena pencocokan substring.** Contoh: kata "bangunan" cocok dengan "pembangunan", atau "desa" cocok dengan "perdesaan". Ini sudah **diperbaiki** dengan pencocokan kata utuh (`\\b` word boundary) pada `import_real_data.py` dan `kategorisasi_ulang.py`.
+
+### 8.5 Kesiapan untuk Skala Penuh
+
+Jika ingin memperluas sistem ke ribuan dokumen, langkah berikut harus dikerjakan terlebih dahulu:
+
+1. **Pra-ekstraksi pasal ke tabel tersendiri.** Saat ini, pasal diekstrak on-the-fly lewat `extract_pasal()` pada setiap request `/tata-cara` dan `/prosedur`. Pada skala ribuan dokumen, ini akan menghabiskan waktu. Pasal harus diekstrak sekali pada fase import dan disimpan di tabel `clauses` (atau serupa) untuk query cepat.
+2. **Status hukum untuk semua dokumen.** Perlu pipeline untuk menyinkronkan status berlaku/cabut secara periodik dari sumber JDIH. Saat ini hanya tersedia untuk 83 Perda.
+3. **Peringatan untuk aturan yang sudah diubah atau dicabut.** Sistem harus bisa menandai dokumen "Tidak Berlaku" secara visual, dan menampilkan dokumen penggantinya (dari `catatan_relasi` yang sudah diparse).
+4. **Kategorisasi topik dari metadata resmi atau model.** Klasifikasi berbasis kata kunci judul saja (\\b matching) sudah baik untuk 469 dokumen, tetapi tidak scalable. Pilih: (a) gunakan metadata topik resmi dari JDIH jika tersedia, atau (b) gunakan topic modeling (LDA/BERTopic) atau zero-shot classification.
+5. **Evaluasi dengan 30–50 pertanyaan nyata.** Kumpulkan 30–50 pertanyaan penggunaan riil (bukan sintetis) dan uji `GET /api/documents/tata-cara` serta `GET /api/documents/{id}/prosedur` melawan pertanyaan-pertanyaan ini. Laporkan precisi, recall, dan kasus false positive/negative.
 
 ## 9. Cara Menjalankan Project
 
@@ -567,7 +676,7 @@ Dependensi yang dipasang adalah FastAPI, Uvicorn, dan Jinja2. SQLite merupakan m
 
 ### 9.4 Seed / Import Database
 
-Project menyediakan dua cara mengisi database:
+Project menyediakan tiga cara mengisi database:
 
 #### Opsi A: Data Dummy (untuk testing cepat)
 ```bash
@@ -588,19 +697,29 @@ python import_real_data.py
 ```
 Perintah ini akan:
 1. Memanggil `init_db()` untuk memastikan skema tersedia.
-2. Menghapus data lama di tabel `documents`, `topics`, `document_topics`.
+2. Menghapus data lama di tabel `documents`, `topics`, `document_topics` (hanya jika semua berjenis "Peraturan Bupati").
 3. Membaca `raw_documents_export.csv` (386 baris, hasil scraping skripsi).
-4. Insert **386 dokumen Peraturan Bupati asli** ke tabel `documents`:
+4. Insert **386 dokumen Peraturan Bupati** ke tabel `documents`:
    - `jenis_dokumen` diisi "Peraturan Bupati"
    - `tanggal_terbit` diisi placeholder `{tahun}-01-01` (keterbatasan: data asli hanya punya tahun)
 5. Insert 10 topik dengan kata kunci ke tabel `topics`.
-6. Assign topik ke dokumen berdasarkan pencocokan kata kunci pada **judul** (case-insensitive).
+6. Assign topik ke dokumen berdasarkan pencocokan kata kunci pada **judul** (case-insensitive, word boundary).
 7. Print ringkasan: total dokumen, jumlah per topik, dokumen tanpa topik.
 8. Menyimpan hasilnya ke `jdih.db`.
 
 Gunakan opsi ini untuk demo presentasi ke pembimbing/pengelola JDIH karena menggunakan data nyata.
 
-> **Catatan:** Kedua skrip menghapus data sebelumnya. Jangan jalankan pada database yang sudah berisi data penting tanpa backup. `seed.py` dan `import_real_data.py` dapat dijalankan bergantian untuk beralih antara data dummy dan asli.
+#### Opsi C: Impor Peraturan Daerah (setelah Opsi B)
+```bash
+python import_perda.py
+```
+Perintah ini akan:
+1. Membaca `perda_export.csv` (80 baris yang berhasil diekstrak dari 92 Perda yang ditemukan).
+2. **INSERT** dokumen Perda ke `jdih.db` tanpa menghapus data Perbup yang ada.
+3. Menambahkan prefix `perda_` pada kolom `nomor_tahun` untuk mencegah bentrok identifier.
+4. Mengisi kolom `status_hukum` (hanya Perda: Berlaku/Tidak Berlaku), `catatan_relasi` (46 dari 83), dan `konten_text_asli`.
+
+> **Catatan:** `import_real_data.py` menghapus isi tabel `documents` (hanya jika berjenis "Peraturan Bupati"). Jika database sudah berisi Peraturan Daerah, jalankan `import_perda.py` **setelah** `import_real_data.py`, atau gunakan `import_perda.py` sendiri untuk menambahkan Perda ke database yang sudah berisi Perbup. Selalu backup `jdih.db` sebelum menimpa data.
 
 ### 9.5 Jalankan Server
 
@@ -622,4 +741,4 @@ Dokumentasi API FastAPI dapat dibuka pada:
 http://localhost:8000/docs
 ```
 
-Saat server pertama kali dimulai, event startup akan memanggil `init_db()` untuk memastikan skema database tersedia. Jika database belum pernah di-seed/import, halaman tetap dapat dibuka tetapi daftar dokumen masih kosong sampai `python seed.py` (data dummy) atau `python import_real_data.py` (data asli) dijalankan.
+Saat server pertama kali dimulai, event startup akan memanggil `init_db()` untuk memastikan skema database tersedia. Jika database belum pernah di-seed/import, halaman tetap dapat dibuka tetapi daftar dokumen masih kosong sampai `python seed.py` (data dummy) atau `python import_real_data.py` diikuti `python import_perda.py` (data asli) dijalankan.

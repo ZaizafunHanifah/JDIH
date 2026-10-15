@@ -5,6 +5,7 @@ let state = {
     q: '',
     topic: null,
     jenis: '',
+    status: '',
     tahun: '',
     sort: 'terbaru',
     page: 1,
@@ -17,6 +18,8 @@ let currentAbortController = null;
 
 const searchInput = document.getElementById('searchInput');
 const jenisFilter = document.getElementById('jenisFilter');
+const statusFilter = document.getElementById('statusFilter');
+const statusNote = document.getElementById('statusNote');
 const topicChipsContainer = document.getElementById('topicChips');
 const yearGrid = document.getElementById('yearGrid');
 const yearsHeading = document.getElementById('yearsHeading');
@@ -53,16 +56,39 @@ async function fetchJenisDokumen() {
     }
 }
 
+async function fetchStatusHukum() {
+    try {
+        const res = await fetch(`${API_BASE}/status-hukum`);
+        if (!res.ok) throw new Error('Gagal memuat status hukum');
+        return await res.json();
+    } catch (err) {
+        console.error('fetchStatusHukum error:', err);
+        return [];
+    }
+}
+
+function renderStatusOptions(statusList, activeStatus = '') {
+    statusFilter.innerHTML = '<option value="">Semua Status</option>';
+    (statusList || []).forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.status;
+        opt.textContent = `${item.status} (${item.jumlah})`;
+        statusFilter.appendChild(opt);
+    });
+    statusFilter.value = activeStatus || '';
+}
+
 async function fetchDocuments(params = {}) {
     if (currentAbortController) {
         currentAbortController.abort();
     }
     currentAbortController = new AbortController();
 
-    const searchParams = new URLSearchParams();
+const searchParams = new URLSearchParams();
     if (state.q) searchParams.set('q', state.q);
     if (state.topic) searchParams.set('topic', state.topic);
     if (state.jenis) searchParams.set('jenis', state.jenis);
+    if (state.status) searchParams.set('status', state.status);
     if (state.tahun) searchParams.set('tahun', state.tahun);
     searchParams.set('sort', state.sort);
     searchParams.set('page', state.page);
@@ -89,12 +115,13 @@ async function fetchDocuments(params = {}) {
     }
 }
 
-async function fetchYearCount(tahun, jenis, topic) {
+async function fetchYearCount(tahun, jenis, topic, status) {
     const params = new URLSearchParams();
     params.set('tahun', tahun);
     params.set('limit', '1');
     if (jenis) params.set('jenis', jenis);
     if (topic) params.set('topic', topic);
+    if (status) params.set('status', status);
 
     try {
         const res = await fetch(`${API_BASE}/documents?${params.toString()}`);
@@ -112,7 +139,7 @@ async function fetchYearCounts() {
     const currentVersion = yearFetchVersion;
 
     const years = Array.from({ length: 16 }, (_, i) => 2011 + i);
-    const promises = years.map(tahun => fetchYearCount(tahun, state.jenis, state.topic));
+    const promises = years.map(tahun => fetchYearCount(tahun, state.jenis, state.topic, state.status));
 
     const results = await Promise.all(promises);
 
@@ -304,6 +331,9 @@ function renderDocumentTable(data, paginationData) {
         const topicsHtml = doc.topics.map(t => `<span class="badge badge-topic">${escapeHtml(t.label_topik)}</span>`).join('');
         const pdfUrl = doc.url_pdf || '#';
         const jenisBadge = `<span class="badge badge-jenis">${escapeHtml(doc.jenis_dokumen)}</span>`;
+        const statusHukumBadge = doc.status_hukum
+            ? `<span class="badge badge-status-${doc.status_hukum === 'Berlaku' ? 'berlaku' : 'tidak-berlaku'}">${escapeHtml(doc.status_hukum)}</span>`
+            : '';
         const nomor = doc.nomor || '-';
         let prosedurHtml = '';
 
@@ -349,6 +379,7 @@ function renderDocumentTable(data, paginationData) {
                     <div class="doc-title-cell">${escapeHtml(doc.judul)}</div>
                     <div class="doc-badges">
                         ${jenisBadge}
+                        ${statusHukumBadge}
                         ${topicsHtml}
                     </div>
                     ${prosedurHtml}
@@ -434,6 +465,26 @@ function handleFilterChange() {
     }
     loadDocuments();
     updateBreadcrumb();
+}
+
+function updateStatusNote() {
+    if (state.status) {
+        statusNote.removeAttribute('hidden');
+    } else {
+        statusNote.setAttribute('hidden', '');
+    }
+}
+
+function onStatusChange() {
+    state.status = statusFilter.value;
+    state.page = 1;
+    updateStatusNote();
+    if (state.view === 'years') {
+        yearsHeading.textContent = getJenisLabel();
+        renderYearGrid();
+    } else {
+        handleFilterChange();
+    }
 }
 
 function resetFilters() {
@@ -574,6 +625,7 @@ async function init() {
 
 searchInput.addEventListener('input', onSearchInput);
 jenisFilter.addEventListener('change', onJenisChange);
-resetBtn.addEventListener('click', resetFilters);
+statusFilter.addEventListener('change', onStatusChange);
+  resetBtn.addEventListener('click', resetFilters);
 
 init();

@@ -358,6 +358,31 @@ def seed_database():
     documents += generate_documents("Peraturan Desa", 10, seed=46)
     
     with get_db() as conn:
+        # PENGGAMAN: seed.py menghapus SELURUH isi documents dan menggantinya
+        # dengan data dummy. Kalau ada dokumen selain Peraturan Bupati (mis.
+        # Peraturan Daerah hasil import_perda.py), hentikan.
+        bocor = conn.execute(
+            "SELECT jenis_dokumen, COUNT(*) FROM documents "
+            "WHERE jenis_dokumen IS NULL OR jenis_dokumen <> ? "
+            "GROUP BY jenis_dokumen",
+            ("Peraturan Bupati",),
+        ).fetchall()
+        if bocor:
+            print("=" * 78, file=sys.stderr)
+            print("ERROR: seed dibatalkan, tidak ada data yang dihapus.", file=sys.stderr)
+            print("=" * 78, file=sys.stderr)
+            for jenis, n in bocor:
+                print(f"  - {jenis}: {n} dokumen", file=sys.stderr)
+            print(
+                "Database berisi dokumen selain Peraturan Bupati (kemungkinan "
+                "Peraturan Daerah). Menjalankan script ini akan MENGHAPUS data "
+                "tersebut. Batalkan, atau hapus manual pengaman ini jika memang "
+                "disengaja.",
+                file=sys.stderr,
+            )
+            print("=" * 78, file=sys.stderr)
+            sys.exit(1)
+
         conn.execute("DELETE FROM document_topics")
         conn.execute("DELETE FROM documents")
         conn.execute("DELETE FROM topics")

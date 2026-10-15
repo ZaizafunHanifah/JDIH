@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import csv
 
@@ -12,22 +13,41 @@ TOPICS = {
     "Organisasi dan Tata Kerja Perangkat Daerah": ["organisasi", "tata kerja", "kedudukan", "susunan", "unit pelaksana teknis", "uptd"],
     "Standar Biaya dan Honorarium": ["standar biaya", "honorarium", "satuan biaya"],
     "Pengadaan Barang/Jasa": ["pengadaan barang", "pengadaan jasa", "lpse"],
-    "Perencanaan Pembangunan Daerah": ["rkpd", "rpjmd", "rencana kerja pemerintah daerah", "rencana pembangunan"],
+    "Perencanaan Pembangunan Daerah": ["rkpd", "rpjmd", "rencana kerja pemerintah daerah", "rencana pembangunan", "penyertaan modal", "bumd", "badan usaha milik daerah", "perumda", "perumdam", "perseroan", "tata ruang", "perumahan", "permukiman", "kawasan", "rumah susun", "bangunan gedung"],
     "Kepegawaian dan Aparatur Sipil Negara": ["pegawai", "pns", "pppk", "aparatur sipil negara", "jabatan fungsional", "tambahan penghasilan"],
     "Pajak dan Retribusi Daerah": ["pajak", "retribusi", "pbb", "bphtb"],
-    "Pelayanan Kesehatan": ["kesehatan", "puskesmas", "rumah sakit", "jkn"],
+    "Pelayanan Kesehatan": ["kesehatan", "puskesmas", "rumah sakit", "jkn", "penyakit"],
     "Pendidikan": ["pendidikan", "sekolah", "ppdb", "bos"],
-    "Pertanian dan Lingkungan Hidup": ["pertanian", "petani", "lingkungan hidup", "sampah", "air tanah"],
+    "Pertanian dan Lingkungan Hidup": ["pertanian", "petani", "lingkungan hidup", "sampah", "persampahan", "air tanah", "air minum"],
     "Sosial dan Kemasyarakatan": ["sosial", "bantuan sosial", "desa", "kemasyarakatan", "disabilitas"],
 }
 
 
 def match_topics(judul: str):
+    """
+    Cocokkan kata kunci topik ke judul memakai WORD BOUNDARY (\\b).
+
+    Fungsi ini adalah SATU-SATUNYA sumber kebenaran pencocokan topik,
+    dipakai bersama oleh import_real_data.py (Perbup) dan
+    scraping_perda/kategorisasi_ulang.py (Perda).
+
+    Kenapa harus \\b, bukan substring biasa:
+      "bangunan" in "...pembangunan..."  -> True  (SALAH, 'bangunan'
+                                           bukan kata utuh)
+      "desa" in "...perdesaan..."        -> True  (SALAH)
+      "pegawai" in "...kepegawaian..."   -> True  (SALAH)
+    Dengan \\b hanya yang benar-benar berdiri sebagai kata utuh yang cocok.
+    Case-insensitive. Diawali/followed oleh non-karakter [\\w] dianggap batas.
+    """
+    if not judul:
+        return []
     judul_lower = judul.lower()
     matched = []
     for topic_label, keywords in TOPICS.items():
         for kw in keywords:
-            if kw.lower() in judul_lower:
+            # \b hanya berlaku di sekitar kata berhuruf; frasa dengan spasi
+            # seperti "tata kerja" tetap aman karena \b menempel di ujungnya.
+            if re.search(r"\b" + re.escape(kw.lower()) + r"\b", judul_lower):
                 matched.append(topic_label)
                 break
     return matched
@@ -47,6 +67,31 @@ def import_data():
     print("Menggunakan placeholder tanggal_terbit = '{tahun}-01-01' untuk semua dokumen.")
 
     with get_db() as conn:
+        # PENGGAMAN: script ini menghapus SELURUH isi documents. Kalau ada
+        # dokumen selain Peraturan Bupati (mis. Peraturan Daerah hasil
+        # import_perda.py), hentikan - jangan ada DELETE yang dieksekusi.
+        bocor = conn.execute(
+            "SELECT jenis_dokumen, COUNT(*) FROM documents "
+            "WHERE jenis_dokumen IS NULL OR jenis_dokumen <> ? "
+            "GROUP BY jenis_dokumen",
+            ("Peraturan Bupati",),
+        ).fetchall()
+        if bocor:
+            print("=" * 78, file=sys.stderr)
+            print("ERROR: import dibatalkan, tidak ada data yang dihapus.", file=sys.stderr)
+            print("=" * 78, file=sys.stderr)
+            for jenis, n in bocor:
+                print(f"  - {jenis}: {n} dokumen", file=sys.stderr)
+            print(
+                "Database berisi dokumen selain Peraturan Bupati (kemungkinan "
+                "Peraturan Daerah). Menjalankan script ini akan MENGHAPUS data "
+                "tersebut. Batalkan, atau hapus manual pengaman ini jika memang "
+                "disengaja.",
+                file=sys.stderr,
+            )
+            print("=" * 78, file=sys.stderr)
+            sys.exit(1)
+
         print("Menghapus data lama...")
         conn.execute("DELETE FROM document_topics")
         conn.execute("DELETE FROM documents")

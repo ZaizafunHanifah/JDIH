@@ -1,0 +1,922 @@
+{
+  "928": {
+    "id": 928,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/928.txt",
+    "panjang_teks": 5013,
+    "jumlah_halaman": 4,
+    "ukuran_kb": 127.5,
+    "alasan": null
+  },
+  "929": {
+    "id": 929,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/929.txt",
+    "panjang_teks": 48869,
+    "jumlah_halaman": 35,
+    "ukuran_kb": 271.9,
+    "alasan": null
+  },
+  "951": {
+    "id": 951,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/951.txt",
+    "panjang_teks": 55837,
+    "jumlah_halaman": 55,
+    "ukuran_kb": 996.5,
+    "alasan": null
+  },
+  "961": {
+    "id": 961,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/961.txt",
+    "panjang_teks": 4330,
+    "jumlah_halaman": 4,
+    "ukuran_kb": 141.8,
+    "alasan": null
+  },
+  "962": {
+    "id": 962,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/962.txt",
+    "panjang_teks": 4026,
+    "jumlah_halaman": 4,
+    "ukuran_kb": 122.5,
+    "alasan": null
+  },
+  "963": {
+    "id": 963,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/963.txt",
+    "panjang_teks": 4267,
+    "jumlah_halaman": 4,
+    "ukuran_kb": 125.4,
+    "alasan": null
+  },
+  "964": {
+    "id": 964,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/964.txt",
+    "panjang_teks": 12795,
+    "jumlah_halaman": 10,
+    "ukuran_kb": 180.2,
+    "alasan": null
+  },
+  "965": {
+    "id": 965,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/965.txt",
+    "panjang_teks": 11073,
+    "jumlah_halaman": 10,
+    "ukuran_kb": 143.6,
+    "alasan": null
+  },
+  "966": {
+    "id": 966,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/966.txt",
+    "panjang_teks": 14598,
+    "jumlah_halaman": 11,
+    "ukuran_kb": 132.1,
+    "alasan": null
+  },
+  "967": {
+    "id": 967,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/967.txt",
+    "panjang_teks": 12185,
+    "jumlah_halaman": 9,
+    "ukuran_kb": 155.1,
+    "alasan": null
+  },
+  "968": {
+    "id": 968,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/968.txt",
+    "panjang_teks": 29026,
+    "jumlah_halaman": 30,
+    "ukuran_kb": 195.9,
+    "alasan": null
+  },
+  "969": {
+    "id": 969,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/969.txt",
+    "panjang_teks": 38985,
+    "jumlah_halaman": 28,
+    "ukuran_kb": 224.1,
+    "alasan": null
+  },
+  "1003": {
+    "id": 1003,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1003.txt",
+    "panjang_teks": 28503,
+    "jumlah_halaman": 18,
+    "ukuran_kb": 171.7,
+    "alasan": null
+  },
+  "1139": {
+    "id": 1139,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1139.txt",
+    "panjang_teks": 47753,
+    "jumlah_halaman": 32,
+    "ukuran_kb": 17281.9,
+    "alasan": null
+  },
+  "1141": {
+    "id": 1141,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1141.txt",
+    "panjang_teks": 23292,
+    "jumlah_halaman": 16,
+    "ukuran_kb": 9014.4,
+    "alasan": null
+  },
+  "1182": {
+    "id": 1182,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1182.txt",
+    "panjang_teks": 203375,
+    "jumlah_halaman": 113,
+    "ukuran_kb": 18646.2,
+    "alasan": null
+  },
+  "2393": {
+    "id": 2393,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/2393.txt",
+    "panjang_teks": 17167,
+    "jumlah_halaman": 13,
+    "ukuran_kb": 7053.4,
+    "alasan": null
+  },
+  "3632": {
+    "id": 3632,
+    "tahun": "2020",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3632.txt",
+    "panjang_teks": 390045,
+    "jumlah_halaman": 151,
+    "ukuran_kb": 32912.7,
+    "alasan": null
+  },
+  "1028": {
+    "id": 1028,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1028.txt",
+    "panjang_teks": 52074,
+    "jumlah_halaman": 36,
+    "ukuran_kb": 403.4,
+    "alasan": null
+  },
+  "1030": {
+    "id": 1030,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1030.txt",
+    "panjang_teks": 117946,
+    "jumlah_halaman": 80,
+    "ukuran_kb": 988.0,
+    "alasan": null
+  },
+  "1031": {
+    "id": 1031,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1031.txt",
+    "panjang_teks": 19953,
+    "jumlah_halaman": 14,
+    "ukuran_kb": 292.1,
+    "alasan": null
+  },
+  "1032": {
+    "id": 1032,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1032.txt",
+    "panjang_teks": 50142,
+    "jumlah_halaman": 39,
+    "ukuran_kb": 404.1,
+    "alasan": null
+  },
+  "1033": {
+    "id": 1033,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1033.txt",
+    "panjang_teks": 47679,
+    "jumlah_halaman": 33,
+    "ukuran_kb": 390.4,
+    "alasan": null
+  },
+  "1034": {
+    "id": 1034,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1034.txt",
+    "panjang_teks": 39037,
+    "jumlah_halaman": 29,
+    "ukuran_kb": 461.7,
+    "alasan": null
+  },
+  "1136": {
+    "id": 1136,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1136.txt",
+    "panjang_teks": 11891,
+    "jumlah_halaman": 9,
+    "ukuran_kb": 271.7,
+    "alasan": null
+  },
+  "1142": {
+    "id": 1142,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1142.txt",
+    "panjang_teks": 42990,
+    "jumlah_halaman": 30,
+    "ukuran_kb": 536.0,
+    "alasan": null
+  },
+  "1166": {
+    "id": 1166,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1166.txt",
+    "panjang_teks": 34450,
+    "jumlah_halaman": 26,
+    "ukuran_kb": 377.8,
+    "alasan": null
+  },
+  "1167": {
+    "id": 1167,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1167.txt",
+    "panjang_teks": 20503,
+    "jumlah_halaman": 13,
+    "ukuran_kb": 460.9,
+    "alasan": null
+  },
+  "1168": {
+    "id": 1168,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1168.txt",
+    "panjang_teks": 47676,
+    "jumlah_halaman": 33,
+    "ukuran_kb": 453.6,
+    "alasan": null
+  },
+  "1175": {
+    "id": 1175,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1175.txt",
+    "panjang_teks": 31293,
+    "jumlah_halaman": 25,
+    "ukuran_kb": 355.2,
+    "alasan": null
+  },
+  "1203": {
+    "id": 1203,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1203.txt",
+    "panjang_teks": 16901,
+    "jumlah_halaman": 14,
+    "ukuran_kb": 385.1,
+    "alasan": null
+  },
+  "1204": {
+    "id": 1204,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1204.txt",
+    "panjang_teks": 19482,
+    "jumlah_halaman": 13,
+    "ukuran_kb": 329.3,
+    "alasan": null
+  },
+  "4277": {
+    "id": 4277,
+    "tahun": "2021",
+    "status_ekstraksi": "gagal_ekstraksi",
+    "path_teks": null,
+    "panjang_teks": 0,
+    "jumlah_halaman": 92,
+    "ukuran_kb": 11762.5,
+    "alasan": "PDF hasil scan, tidak ada layer teks"
+  },
+  "1209": {
+    "id": 1209,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1209.txt",
+    "panjang_teks": 39225,
+    "jumlah_halaman": 31,
+    "ukuran_kb": 993.8,
+    "alasan": null
+  },
+  "1216": {
+    "id": 1216,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1216.txt",
+    "panjang_teks": 35697,
+    "jumlah_halaman": 26,
+    "ukuran_kb": 403.2,
+    "alasan": null
+  },
+  "1254": {
+    "id": 1254,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1254.txt",
+    "panjang_teks": 49874,
+    "jumlah_halaman": 37,
+    "ukuran_kb": 628.2,
+    "alasan": null
+  },
+  "2694": {
+    "id": 2694,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/2694.txt",
+    "panjang_teks": 18365,
+    "jumlah_halaman": 14,
+    "ukuran_kb": 476.0,
+    "alasan": null
+  },
+  "2696": {
+    "id": 2696,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/2696.txt",
+    "panjang_teks": 38830,
+    "jumlah_halaman": 23,
+    "ukuran_kb": 442.3,
+    "alasan": null
+  },
+  "2698": {
+    "id": 2698,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/2698.txt",
+    "panjang_teks": 52474,
+    "jumlah_halaman": 32,
+    "ukuran_kb": 464.0,
+    "alasan": null
+  },
+  "2701": {
+    "id": 2701,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/2701.txt",
+    "panjang_teks": 75025,
+    "jumlah_halaman": 57,
+    "ukuran_kb": 431.9,
+    "alasan": null
+  },
+  "2702": {
+    "id": 2702,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/2702.txt",
+    "panjang_teks": 13333,
+    "jumlah_halaman": 9,
+    "ukuran_kb": 221.5,
+    "alasan": null
+  },
+  "3277": {
+    "id": 3277,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3277.txt",
+    "panjang_teks": 81357,
+    "jumlah_halaman": 42,
+    "ukuran_kb": 388.4,
+    "alasan": null
+  },
+  "3285": {
+    "id": 3285,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3285.txt",
+    "panjang_teks": 172160,
+    "jumlah_halaman": 93,
+    "ukuran_kb": 855.9,
+    "alasan": null
+  },
+  "3306": {
+    "id": 3306,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3306.txt",
+    "panjang_teks": 17951,
+    "jumlah_halaman": 15,
+    "ukuran_kb": 407.2,
+    "alasan": null
+  },
+  "3324": {
+    "id": 3324,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3324.txt",
+    "panjang_teks": 76405,
+    "jumlah_halaman": 42,
+    "ukuran_kb": 626.2,
+    "alasan": null
+  },
+  "3460": {
+    "id": 3460,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3460.txt",
+    "panjang_teks": 30803,
+    "jumlah_halaman": 20,
+    "ukuran_kb": 1106.9,
+    "alasan": null
+  },
+  "3467": {
+    "id": 3467,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3467.txt",
+    "panjang_teks": 14621,
+    "jumlah_halaman": 10,
+    "ukuran_kb": 206.5,
+    "alasan": null
+  },
+  "3472": {
+    "id": 3472,
+    "tahun": "2022",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3472.txt",
+    "panjang_teks": 17275,
+    "jumlah_halaman": 9,
+    "ukuran_kb": 298.0,
+    "alasan": null
+  },
+  "3437": {
+    "id": 3437,
+    "tahun": "2023",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3437.txt",
+    "panjang_teks": 22134,
+    "jumlah_halaman": 13,
+    "ukuran_kb": 384.7,
+    "alasan": null
+  },
+  "3462": {
+    "id": 3462,
+    "tahun": "2023",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3462.txt",
+    "panjang_teks": 15280,
+    "jumlah_halaman": 7,
+    "ukuran_kb": 222.2,
+    "alasan": null
+  },
+  "3502": {
+    "id": 3502,
+    "tahun": "2023",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3502.txt",
+    "panjang_teks": 19625,
+    "jumlah_halaman": 13,
+    "ukuran_kb": 243.5,
+    "alasan": null
+  },
+  "3513": {
+    "id": 3513,
+    "tahun": "2023",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3513.txt",
+    "panjang_teks": 5306,
+    "jumlah_halaman": 4,
+    "ukuran_kb": 278.9,
+    "alasan": null
+  },
+  "3514": {
+    "id": 3514,
+    "tahun": "2023",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3514.txt",
+    "panjang_teks": 6664,
+    "jumlah_halaman": 4,
+    "ukuran_kb": 183.6,
+    "alasan": null
+  },
+  "3522": {
+    "id": 3522,
+    "tahun": "2023",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3522.txt",
+    "panjang_teks": 18853,
+    "jumlah_halaman": 10,
+    "ukuran_kb": 322.5,
+    "alasan": null
+  },
+  "3523": {
+    "id": 3523,
+    "tahun": "2023",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3523.txt",
+    "panjang_teks": 39175,
+    "jumlah_halaman": 23,
+    "ukuran_kb": 303.7,
+    "alasan": null
+  },
+  "3628": {
+    "id": 3628,
+    "tahun": "2023",
+    "status_ekstraksi": "gagal_ekstraksi",
+    "path_teks": null,
+    "panjang_teks": 0,
+    "jumlah_halaman": 895,
+    "ukuran_kb": 6870.4,
+    "alasan": "PDF hasil scan, tidak ada layer teks"
+  },
+  "3629": {
+    "id": 3629,
+    "tahun": "2023",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3629.txt",
+    "panjang_teks": 17215,
+    "jumlah_halaman": 11,
+    "ukuran_kb": 297.1,
+    "alasan": null
+  },
+  "3626": {
+    "id": 3626,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3626.txt",
+    "panjang_teks": 14480,
+    "jumlah_halaman": 8,
+    "ukuran_kb": 188.2,
+    "alasan": null
+  },
+  "3634": {
+    "id": 3634,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3634.txt",
+    "panjang_teks": 14810,
+    "jumlah_halaman": 9,
+    "ukuran_kb": 267.3,
+    "alasan": null
+  },
+  "3635": {
+    "id": 3635,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3635.txt",
+    "panjang_teks": 55819,
+    "jumlah_halaman": 31,
+    "ukuran_kb": 379.6,
+    "alasan": null
+  },
+  "3768": {
+    "id": 3768,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3768.txt",
+    "panjang_teks": 21465,
+    "jumlah_halaman": 14,
+    "ukuran_kb": 267.7,
+    "alasan": null
+  },
+  "3773": {
+    "id": 3773,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3773.txt",
+    "panjang_teks": 41942,
+    "jumlah_halaman": 20,
+    "ukuran_kb": 419.2,
+    "alasan": null
+  },
+  "3774": {
+    "id": 3774,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3774.txt",
+    "panjang_teks": 11969,
+    "jumlah_halaman": 8,
+    "ukuran_kb": 315.3,
+    "alasan": null
+  },
+  "3775": {
+    "id": 3775,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3775.txt",
+    "panjang_teks": 12831,
+    "jumlah_halaman": 8,
+    "ukuran_kb": 237.4,
+    "alasan": null
+  },
+  "3889": {
+    "id": 3889,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3889.txt",
+    "panjang_teks": 21768,
+    "jumlah_halaman": 15,
+    "ukuran_kb": 419.5,
+    "alasan": null
+  },
+  "3942": {
+    "id": 3942,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3942.txt",
+    "panjang_teks": 82072,
+    "jumlah_halaman": 47,
+    "ukuran_kb": 501.1,
+    "alasan": null
+  },
+  "4013": {
+    "id": 4013,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4013.txt",
+    "panjang_teks": 211332,
+    "jumlah_halaman": 114,
+    "ukuran_kb": 17278.2,
+    "alasan": null
+  },
+  "4079": {
+    "id": 4079,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4079.txt",
+    "panjang_teks": 458516,
+    "jumlah_halaman": 182,
+    "ukuran_kb": 21802.3,
+    "alasan": null
+  },
+  "4182": {
+    "id": 4182,
+    "tahun": "2024",
+    "status_ekstraksi": "gagal_ekstraksi",
+    "path_teks": null,
+    "panjang_teks": 0,
+    "jumlah_halaman": 1573,
+    "ukuran_kb": 14421.3,
+    "alasan": "PDF hasil scan, tidak ada layer teks"
+  },
+  "4184": {
+    "id": 4184,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4184.txt",
+    "panjang_teks": 65466,
+    "jumlah_halaman": 39,
+    "ukuran_kb": 644.5,
+    "alasan": null
+  },
+  "4185": {
+    "id": 4185,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4185.txt",
+    "panjang_teks": 86121,
+    "jumlah_halaman": 50,
+    "ukuran_kb": 1059.7,
+    "alasan": null
+  },
+  "4186": {
+    "id": 4186,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4186.txt",
+    "panjang_teks": 237061,
+    "jumlah_halaman": 132,
+    "ukuran_kb": 1401.9,
+    "alasan": null
+  },
+  "4436": {
+    "id": 4436,
+    "tahun": "2025",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4436.txt",
+    "panjang_teks": 12681,
+    "jumlah_halaman": 8,
+    "ukuran_kb": 290.0,
+    "alasan": null
+  },
+  "4437": {
+    "id": 4437,
+    "tahun": "2025",
+    "status_ekstraksi": "gagal_ekstraksi",
+    "path_teks": null,
+    "panjang_teks": 0,
+    "jumlah_halaman": 1611,
+    "ukuran_kb": 19009.0,
+    "alasan": "PDF hasil scan, tidak ada layer teks"
+  },
+  "4438": {
+    "id": 4438,
+    "tahun": "2025",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4438.txt",
+    "panjang_teks": 13970,
+    "jumlah_halaman": 8,
+    "ukuran_kb": 316.5,
+    "alasan": null
+  },
+  "4450": {
+    "id": 4450,
+    "tahun": "2025",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4450.txt",
+    "panjang_teks": 11124,
+    "jumlah_halaman": 6,
+    "ukuran_kb": 299.4,
+    "alasan": null
+  },
+  "4460": {
+    "id": 4460,
+    "tahun": "2025",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4460.txt",
+    "panjang_teks": 21571,
+    "jumlah_halaman": 13,
+    "ukuran_kb": 446.1,
+    "alasan": null
+  },
+  "4503": {
+    "id": 4503,
+    "tahun": "2025",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4503.txt",
+    "panjang_teks": 139826,
+    "jumlah_halaman": 71,
+    "ukuran_kb": 744.3,
+    "alasan": null
+  },
+  "4592": {
+    "id": 4592,
+    "tahun": "2025",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4592.txt",
+    "panjang_teks": 21901,
+    "jumlah_halaman": 13,
+    "ukuran_kb": 713.0,
+    "alasan": null
+  },
+  "4659": {
+    "id": 4659,
+    "tahun": "2025",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4659.txt",
+    "panjang_teks": 13589,
+    "jumlah_halaman": 8,
+    "ukuran_kb": 570.7,
+    "alasan": null
+  },
+  "4848": {
+    "id": 4848,
+    "tahun": "2026",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4848.txt",
+    "panjang_teks": 21468,
+    "jumlah_halaman": 13,
+    "ukuran_kb": 692.3,
+    "alasan": null
+  },
+  "4894": {
+    "id": 4894,
+    "tahun": "2026",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4894.txt",
+    "panjang_teks": 77097,
+    "jumlah_halaman": 42,
+    "ukuran_kb": 911.3,
+    "alasan": null
+  },
+  "1131": {
+    "id": 1131,
+    "tahun": "2021",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/1131.txt",
+    "panjang_teks": 1229731,
+    "jumlah_halaman": 752,
+    "ukuran_kb": 12964.7,
+    "alasan": null
+  },
+  "3305": {
+    "id": 3305,
+    "tahun": "2022",
+    "status_ekstraksi": "gagal_ekstraksi",
+    "path_teks": null,
+    "panjang_teks": 0,
+    "jumlah_halaman": 1413,
+    "ukuran_kb": 13198.7,
+    "alasan": "PDF sangat besar (1413 halaman, batas 1000), dilewati"
+  },
+  "3542": {
+    "id": 3542,
+    "tahun": "2023",
+    "status_ekstraksi": "gagal_ekstraksi",
+    "path_teks": null,
+    "panjang_teks": 0,
+    "jumlah_halaman": 1545,
+    "ukuran_kb": 8701.4,
+    "alasan": "PDF sangat besar (1545 halaman, batas 1000), dilewati"
+  },
+  "3772": {
+    "id": 3772,
+    "tahun": "2024",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/3772.txt",
+    "panjang_teks": 435212,
+    "jumlah_halaman": 328,
+    "ukuran_kb": 4835.2,
+    "alasan": null
+  },
+  "4187": {
+    "id": 4187,
+    "tahun": "2024",
+    "status_ekstraksi": "gagal_ekstraksi",
+    "path_teks": null,
+    "panjang_teks": 0,
+    "jumlah_halaman": 2277,
+    "ukuran_kb": 7847.3,
+    "alasan": "PDF sangat besar (2277 halaman, batas 1000), dilewati"
+  },
+  "4334": {
+    "id": 4334,
+    "tahun": "2025",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4334.txt",
+    "panjang_teks": 459598,
+    "jumlah_halaman": 315,
+    "ukuran_kb": 6640.9,
+    "alasan": null
+  },
+  "4462": {
+    "id": 4462,
+    "tahun": "2025",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4462.txt",
+    "panjang_teks": 493890,
+    "jumlah_halaman": 302,
+    "ukuran_kb": 14211.5,
+    "alasan": null
+  },
+  "4593": {
+    "id": 4593,
+    "tahun": "2025",
+    "status_ekstraksi": "ok",
+    "path_teks": "text_raw/4593.txt",
+    "panjang_teks": 741432,
+    "jumlah_halaman": 453,
+    "ukuran_kb": 27763.1,
+    "alasan": null
+  },
+  "4647": {
+    "id": 4647,
+    "tahun": "2025",
+    "status_ekstraksi": "gagal_ekstraksi",
+    "path_teks": null,
+    "panjang_teks": 0,
+    "jumlah_halaman": 2418,
+    "ukuran_kb": 9007.6,
+    "alasan": "PDF sangat besar (2418 halaman, batas 1000), dilewati"
+  },
+  "4947": {
+    "id": 4947,
+    "tahun": "2026",
+    "status_ekstraksi": "gagal_ekstraksi",
+    "path_teks": null,
+    "panjang_teks": 0,
+    "jumlah_halaman": 1458,
+    "ukuran_kb": 25149.3,
+    "alasan": "PDF sangat besar (1458 halaman, batas 1000), dilewati"
+  }
+}

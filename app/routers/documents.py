@@ -230,6 +230,7 @@ async def get_documents(
     q: str | None = Query(None, description="Kata kunci full-text search"),
     topic: int | None = Query(None, description="Filter by topic ID"),
     jenis: str | None = Query(None, description="Filter jenis dokumen (Peraturan Bupati, Peraturan Daerah, Surat Keputusan, Surat Edaran, Peraturan Desa)"),
+    status: str | None = Query(None, description="Filter status hukum (Berlaku / Tidak Berlaku)"),
     tahun: int | None = Query(None, ge=2000, le=2030, description="Filter tahun terbit"),
     sort: str = Query("terbaru", pattern="^(terbaru|relevansi)$", description="Urutan: terbaru atau relevansi"),
     page: int = Query(1, ge=1, description="Halaman (1-based)"),
@@ -263,6 +264,10 @@ async def get_documents(
             base_query += " AND strftime('%Y', d.tanggal_terbit) = ?"
             params.append(str(tahun))
 
+        if status is not None:
+            base_query += " AND d.status_hukum = ?"
+            params.append(status)
+
         if sort_by_relevance:
             order_clause = "ORDER BY bm25(documents_fts)"
         else:
@@ -272,7 +277,7 @@ async def get_documents(
         total = conn.execute(count_query, params).fetchone()[0]
 
         data_query = f"""
-            SELECT d.id, d.judul, d.nomor, d.tanggal_terbit, d.url_pdf, d.konten_text, d.konten_text_asli, d.jenis_dokumen
+            SELECT d.id, d.judul, d.nomor, d.tanggal_terbit, d.url_pdf, d.konten_text_asli, d.jenis_dokumen, d.status_hukum, d.catatan_relasi
             {base_query}
             {order_clause}
             LIMIT ? OFFSET ?
@@ -291,6 +296,8 @@ async def get_documents(
                 "tanggal_terbit": row["tanggal_terbit"],
                 "jenis_dokumen": row["jenis_dokumen"],
                 "url_pdf": row["url_pdf"],
+                "status_hukum": row["status_hukum"],
+                "catatan_relasi": row["catatan_relasi"],
                 "topics": [{"id": tr["id"], "label_topik": tr["label_topik"]} for tr in topic_rows]
             }
             if total <= 3:

@@ -8,6 +8,11 @@ from app.db import get_db
 
 CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "raw_content_export.csv")
 
+# raw_content_export.csv hanya berisi Peraturan Bupati. Wajib difilter, karena
+# nomor+tahun Perbup dan Perda tumpang tindih (mis. "1_2020" ada di keduanya)
+# dan tanpa jenis_dokumen baris ini bisa mendarat di dokumen yang salah.
+JENIS_DOKUMEN = "Peraturan Bupati"
+
 csv.field_size_limit(sys.maxsize)
 
 total_rows = 0
@@ -37,8 +42,9 @@ with open(CSV_PATH, newline="", encoding="utf-8", errors="replace") as f:
                 continue
 
             cursor = conn.execute(
-                "SELECT id FROM documents WHERE nomor = ? AND substr(tanggal_terbit, 1, 4) = ?",
-                (nomor, tahun),
+                "SELECT id FROM documents WHERE nomor = ? AND substr(tanggal_terbit, 1, 4) = ? "
+                "AND jenis_dokumen = ?",
+                (nomor, tahun, JENIS_DOKUMEN),
             )
             doc = cursor.fetchone()
 
@@ -53,6 +59,7 @@ with open(CSV_PATH, newline="", encoding="utf-8", errors="replace") as f:
 
         conn.commit()
 
+print(f"Jenis dokumen yang di-update : {JENIS_DOKUMEN} (dibatasi)")
 print(f"Total baris di CSV: {total_rows}")
 print(f"Total berhasil di-update: {updated}")
 print(f"Total konten_mentah kosong (tidak diupdate): {empty_content}")

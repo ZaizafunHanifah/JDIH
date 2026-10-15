@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from app.db import init_db
-from app.routers import documents, topics, metadata
+from app.routers import documents, topics, metadata, status
 
 app = FastAPI(title="JDIH Fitur Tambahan")
 
@@ -18,6 +18,7 @@ async def startup_event():
 app.include_router(documents.router)
 app.include_router(topics.router)
 app.include_router(metadata.router)
+app.include_router(status.router)
 
 
 @app.get("/")
