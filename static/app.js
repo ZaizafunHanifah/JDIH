@@ -541,62 +541,78 @@ async function init() {
     }
 
     function renderTataCaraResult(data) {
+        console.log("renderTataCaraResult dipanggil", data);
         const doc = data.dokumen;
         let html = '';
 
         if (data.status === 'ditemukan') {
-            html += _kartuDokumen(doc, 'ditemukan', 'Tata cara ditemukan');
-
-            if (data.diperluas_sinonim === true) {
-                html += `<p class="tata-cara-note">ℹ️ Pencarian diperluas ke istilah yang mirip karena kata yang persis sama tidak ditemukan.</p>`;
-            }
-
             const pasals = (data.prosedur && data.prosedur.pasal_prosedural) || [];
             const totalRelevan = (data.prosedur && data.prosedur.jumlah_pasal_relevan) || pasals.length;
             const tampil = pasals.slice(0, _MAKS_KOTAK_PASAL);
+            const q = (tataCaraInput.value || '').trim();
+
+            const highlight = (text) => {
+                if (!q) return escapeHtml(text);
+                const safe = escapeHtml(text);
+                const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+                return safe.replace(re, '<mark>$1</mark>');
+            };
+
+            const judul = doc.judul || '';
+            const nomor = doc.nomor || '';
+            const tahun = doc.tahun || '';
+            const jenis = doc.jenis_dokumen || '';
+            const status = doc.status_hukum || '';
+            const urlPdf = doc.url_pdf || '#';
+            const kategori = (doc.topics && doc.topics.length) ? doc.topics.map(t => t.label_topik).join(', ') : '';
+            const halaman = doc.jumlah_halaman || '';
 
             tampil.forEach(p => {
-                const dipotongBadge = p.terpotong
-                    ? `<span class="prosedur-badge">Dipotong</span>`
-                    : '';
+                const nomorPasal = p.nomor_pasal || '';
+                const isiPasal = String(p.isi_pasal || '').replace(/\n/g, ' ');
+                const jenisKonten = p.jenis_konten || '';
                 html += `
-                    <div class="prosedur-box">
-                        <div class="prosedur-heading">Pasal ${escapeHtml(p.nomor_pasal)} ${dipotongBadge}</div>
-                        <div class="prosedur-blockquote">
-                            <div class="prosedur-isi">${escapeHtml(p.isi_pasal).replace(/\n/g, ' ')}</div>
-                            <div class="prosedur-warning">⚠️ Kutipan langsung dari dokumen asli — bukan ringkasan AI.</div>
-                        </div>
-                    </div>
-                `;
+<article class="result-card">
+  <div class="result-left">
+    <div class="doc-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+    <div class="doc-info">
+      <div class="badges">
+        ${jenis ? `<span class="badge badge-type">${escapeHtml(jenis)}</span>` : ''}
+        ${status ? `<span class="badge badge-status">● ${escapeHtml(status)}</span>` : ''}
+      </div>
+      <h3 class="doc-title">${escapeHtml(judul)}</h3>
+      <p class="doc-desc">${escapeHtml(nomor)} | ${escapeHtml(String(tahun))}</p>
+      <div class="doc-meta">${escapeHtml(String(tahun))}${kategori ? ' · ' + escapeHtml(kategori) : ''}${halaman ? ' · ' + escapeHtml(String(halaman)) + ' halaman' : ''}</div>
+      ${urlPdf && urlPdf !== '#' ? `<a class="link-green" href="${escapeHtml(urlPdf)}" target="_blank" rel="noopener">📎 Lihat dokumen asli →</a>` : ''}
+    </div>
+  </div>
+  <div class="result-right">
+    <div class="pasal-head">
+      ${nomorPasal ? `<span class="badge badge-pasal">Pasal ${escapeHtml(nomorPasal)}</span>` : ''}
+      ${jenisKonten ? `<span class="badge badge-prosedural">${escapeHtml(jenisKonten)}</span>` : ''}
+    </div>
+    <p class="pasal-text">${highlight(isiPasal)}</p>
+    ${urlPdf && urlPdf !== '#' ? `<a class="link-green" href="${escapeHtml(urlPdf)}" target="_blank" rel="noopener">Lihat pasal lengkap →</a>` : ''}
+    <small class="note">Kutipan langsung dari dokumen asli, bukan ringkasan AI.</small>
+  </div>
+</article>`;
             });
 
             if (totalRelevan > _MAKS_KOTAK_PASAL) {
-                html += `
-                    <div class="prosedur-info">
-                        Ditemukan ${totalRelevan} pasal relevan.
-                        <a href="${escapeHtml(doc.url_pdf)}" target="_blank" rel="noopener">Unduh dokumen lengkap (PDF)</a> untuk melihat semuanya.
-                    </div>
-                `;
+                html += `<div class="prosedur-info">Ditemukan ${totalRelevan} pasal relevan. <a href="${escapeHtml(urlPdf)}" target="_blank" rel="noopener">Unduh dokumen lengkap (PDF)</a> untuk melihat semuanya.</div>`;
             }
 
         } else if (data.status === 'hanya_dokumen_perubahan') {
-            html += `
-                <div class="prosedur-info">
-                    ${escapeHtml(_pesanAtau(data, 'Tidak ditemukan tata cara langsung. Dokumen terkait berikut adalah peraturan perubahan.'))}
-                </div>
-            `;
+            html += `<div class="prosedur-info">${escapeHtml(_pesanAtau(data, 'Tidak ditemukan tata cara langsung. Dokumen terkait berikut adalah peraturan perubahan.'))}</div>`;
             if (doc) {
-                html += `<div class="tata-cara-doc">
-                    <a class="tata-cara-doc-title" href="${escapeHtml(doc.url_pdf)}" target="_blank" rel="noopener">${escapeHtml(doc.judul)}</a>
-                    <div class="tata-cara-doc-meta">${escapeHtml(doc.nomor)} | ${doc.tahun}</div>
-                </div>`;
+                html += `<article class="result-card"><div class="result-left"><div class="doc-info"><h3 class="doc-title">${escapeHtml(doc.judul)}</h3><div class="doc-meta">${escapeHtml(doc.nomor)} | ${doc.tahun}</div></div></div></article>`;
             }
 
         } else if (data.status === 'tidak_ditemukan') {
             html += `<p class="tata-cara-error">${escapeHtml(_pesanAtau(data, _PESAN_DEFAULT))}</p>`;
 
         } else if (doc) {
-            html += _kartuDokumen(doc, 'dokumen_ditemukan_tanpa_prosedur', 'Dokumen ditemukan, tanpa tata cara');
+            html += `<article class="result-card"><div class="result-left"><div class="doc-info"><h3 class="doc-title">${escapeHtml(doc.judul)}</h3><div class="doc-meta">${escapeHtml(doc.nomor)} | ${doc.tahun}</div></div></div></article>`;
             if (data.prosedur && data.prosedur.pesan) {
                 html += `<div class="prosedur-info">${escapeHtml(data.prosedur.pesan)}</div>`;
             }

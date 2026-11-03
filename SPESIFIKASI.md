@@ -21,7 +21,7 @@ Project ini membangun demo aplikasi pencarian produk hukum dengan fitur utama be
 
 ### 1.3 Posisi Project
 
-Project ini merupakan **layer tambahan atau demo yang terpisah dari web JDIH resmi**. Aplikasi tidak membaca atau menulis data JDIH produksi. Database saat ini berisi **407 dokumen** yang terdiri dari **327 Peraturan Bupati** dan **80 Peraturan Daerah** Kabupaten Banyumas asli, diimpor dari hasil pengumpulan data skripsi penulis (bukan hasil karangan/generate). Di antaranya terdapat **9.229 pasal** dan **5.162 prosedural** (55,9%). Karena itu, tautan PDF dan isi dokumen dalam demo mencerminkan data nyata namun tidak boleh dianggap sebagai dokumen hukum resmi tanpa verifikasi lebih lanjut.
+Project ini merupakan **layer tambahan atau demo yang terpisah dari web JDIH resmi**. Aplikasi tidak membaca atau menulis data JDIH produksi. Database saat ini berisi **407 dokumen** yang terdiri dari **327 Peraturan Bupati** dan **80 Peraturan Daerah** Kabupaten Banyumas asli, diimpor dari hasil pengumpulan data skripsi penulis (bukan hasil karangan/generate). Di antaranya terdapat **9.229 pasal** dan **5.162 prosedural (55,9%)**, dengan rincian per jenis (Perbup 327 / 6.455 / 3.337, Perda 80 / 2.774 / 1.825). Karena itu, tautan PDF dan isi dokumen dalam demo mencerminkan data nyata namun tidak boleh dianggap sebagai dokumen hukum resmi tanpa verifikasi lebih lanjut.
 
 ## 2. Tech Stack
 
@@ -169,7 +169,19 @@ Tabel ini adalah virtual table FTS5 untuk pencarian teks.
 
 Tabel ini tidak diisi secara langsung oleh kode seed. Pengisiannya dilakukan otomatis oleh trigger ketika data dimasukkan ke `documents`.
 
-## 5. Daftar Endpoint API
+## 4.5 Cara Kerja Ekstraksi Pasal
+
+Ekstraksi pasal menggunakan **regex, bukan AI**. Alur `extract_pasal_v2` (yang digunakan saat ini):
+
+1. **Cari titik awal.** Mencari kata `MEMUTUSKAN` (case-insensitive). Jika tidak ditemukan, tidak ada pasal yang diekstrak.
+2. **Cari judul pasal.** Hanya mempertimbangkan baris yang berbentuk `Pasal N.` / `Pasal N` sebagai judul pasal di awal baris (`_PASAL_JUDUL_PATTERN`, multiline).
+3. **Validasi urutan nomor.** Nomor pasal harus naik dari `expected = 1`, dan loncatan nomor maksimal **5** (`_MAX_LONJAT_NOMOR = 5`). Hanya baris yang memenuhi syarat yang dipertimbangkan valid.
+4. **Potong isi antar judul.** Isi pasal diambil dari akhir judul pasal hingga awal judul pasal berikutnya, atau sampai akhir teks.
+5. **Batas akhir ekstraksi.** Isi dipotong di **BAB** dan **LAMPIRAN** (`_BAB_JUDUL_PATTERN`, `_LAMPIRAN_RE`) — konten setelah BAB/LAMPIRAN tidak dimasukkan ke dalam isi pasal.
+6. **Tampilan dibatasi 600 karakter.** `_MAX_ISI_LENGTH = 600`. Jika isi pasal lebih dari 600 karakter, tampilan dipotong pada spasi terakhir dan ditambahkan penanda `(dipotong, baca selengkapnya di dokumen lengkap)`; `terpotong` di-set `true`.
+7. **Klasifikasi prosedural.** `is_procedural(isi_pasal)` menggunakan **11 kata kunci**: `mengajukan`, `melampirkan`, `menyerahkan`, `diterbitkan`, `permohonan`, `verifikasi`, `hari kerja`, `disetujui`, `ditolak`, `persyaratan`, `tahapan` (skor minimal 2) **atau** terdapat **penomoran ayat berurutan (minimal (1),(2),...)**. Ditandai `is_procedural`, `skor_keyword`, `ada_penomoran_ayat`.
+
+**Catatan:** Untuk 3 dokumen atau kurang pada hasil daftar, field `prosedur` diisi pada `GET /api/documents` (lihat Bab 5.1). Tarik kesimpulan ini hanya berdasarkan kode; ekstraksi berbasis regex, bukan AI.
 
 Semua endpoint menggunakan metode `GET` dan mengembalikan JSON. FastAPI juga menyediakan dokumentasi interaktif pada `/docs` ketika server berjalan.
 
@@ -185,7 +197,7 @@ Endpoint ini mengambil daftar dokumen dengan pencarian, filter, pengurutan, dan 
 | `topic` | Tidak | - | Filter berdasarkan ID topik. |
 | `jenis` | Tidak | - | Filter berdasarkan nilai `jenis_dokumen`. |
 | `tahun` | Tidak | - | Filter tahun terbit, dibatasi antara 2000 dan 2030. |
-| `status` | Tidak | - | Filter `status_hukum` (Berlaku / Tidak Berlaku). Hanya berlaku untuk Peraturan Daerah; dokumen Perbup selalu NULL. |
+> **Catatan:** Pada `GET /api/documents`, field `prosedur` hanya diisi bila hasil **3 dokumen atau kurang** (untuk hasil > 3, `prosedur` bernilai `null`, `app/routers/documents.py:303-307`).
 | `sort` | Tidak | `terbaru` | `terbaru` mengurutkan tanggal turun; `relevansi` mengurutkan berdasarkan `bm25` hanya jika `q` diisi. |
 | `page` | Tidak | `1` | Halaman hasil, minimal 1. |
 | `limit` | Tidak | `10` | Jumlah dokumen per halaman, antara 1 dan 100. |
@@ -325,11 +337,11 @@ GET /api/jenis-dokumen
 ]
 ```
 
-**Kegunaan:** mengisi dropdown filter jenis dokumen dan memberi informasi distribusi jenis dokumen. Pada data asli, terdapat dua jenis dokumen — Peraturan Bupati (327) dan Peraturan Daerah (80).
+**Kegunaan:** mengisi dropdown filter jenis dokumen dan memberi informasi distribusi jenis dokumen. Pada data asli, terdapat dua jenis dokumen — Peraturan Bupati (327) dan Peraturan Daerah (80). Disarankan untuk menampilkan informasi agregat (407 dokumen, 9.229 pasal, 5.162 prosedural, 55,9%) dengan rincian per jenis (Perbup 327 / 6.455 / 3.337, Perda 80 / 2.774 / 1.825).
 
 ### 5.5 `GET /api/status-hukum`
 
-Endpoint ini mengembalikan daftar nilai unik `status_hukum` yang ada di database beserta jumlah dokumen masing-masing. Hanya dokumen Peraturan Daerah yang memiliki `status_hukum`; dokumen Peraturan Bupati selalu NULL dan tidak dihitung.
+Endpoint ini mengembalikan daftar nilai unik `status_hukum` yang ada di database beserta jumlah dokumen masing-masing. Hanya dokumen Peraturan Daerah yang memiliki `status_hukum`; dokumen Peraturan Bupati selalu NULL dan tidak dihitung. **Tambahan:** tersedia endpoint `GET /api/status-hukum` untuk keperluan ini. Parameter `status` juga tersedia pada `GET /api/documents` untuk memfilter berdasarkan `status_hukum`. Response dokumen menyertakan field `status_hukum` dan `catatan_relasi`.
 
 **Parameter:** tidak ada.
 
@@ -374,7 +386,13 @@ GET /api/tahun
 
 **Kegunaan:** menyediakan metadata tahun untuk pengembangan atau komponen frontend yang membutuhkan daftar tahun; tampilan grid tahun saat ini menghitung jumlah dokumen per tahun melalui `/api/documents`.
 
-## 6. Fitur Frontend
+### 5.7 GET /api/documents/{id}/prosedur
+
+Mengembalikan hasil `get_prosedur_untuk_dokumen()` berdasarkan `konten_text_asli`. Status: `tidak_ada_teks`, `tidak_ditemukan_pasal`, `tidak_ditemukan_prosedur`, `ditemukan` (dengan `pasal_prosedural` berisi `nomor_pasal`, `isi_pasal`, `skor_keyword`, `terpotong`).
+
+### 5.8 GET /api/documents/tata-cara
+
+Mencari tata cara berdasarkan `q`. Dua tahap: (1) FTS5 tanpa sinonim, (2) bila tidak ditemukan dicoba dengan sinonim (`diperluas_sinonim`). Pasal definisi/maksud-tujuan dikecualikan; prioritas dokumen non-perubahan (kandidat perubahan hanya dipakai bila tidak ada non-perubahan). Status: `ditemukan`, `hanya_dokumen_perubahan` (hanya dokumen perubahan ditampilkan, tanpa pasal prosedural langsung), `tidak_ditemukan`. Maksimal 8 pasal relevan.
 
 ### 6.1 Pola Drill-down: State A ke State B
 
@@ -440,7 +458,7 @@ Kedua mekanisme ini penting karena permintaan API dapat selesai dalam urutan yan
 
 ## 7. Data Saat Ini
 
-Data saat ini adalah **data asli 407 dokumen** yang terdiri dari **327 Peraturan Bupati** dan **80 Peraturan Daerah** Kabupaten Banyumas, diimpor dari hasil pengumpulan data skripsi penulis melalui `import_real_data.py` (Perbup) dan `import_perda.py` (Perda) — bukan data dummy dari `seed.py`. Totalnya terdapat **9.229 pasal** dan **5.162 prosedural** (55,9%).
+Data saat ini adalah **data asli 407 dokumen** yang terdiri dari **327 Peraturan Bupati** dan **80 Peraturan Daerah** Kabupaten Banyumas, diimpor dari hasil pengumpulan data skripsi penulis melalui `import_real_data.py` (Perbup) dan `import_perda.py` (Perda) — bukan data dummy dari `seed.py`. Totalnya terdapat **9.229 pasal** dan **5.162 prosedural (55,9%)**, dengan rincian per jenis (Perbup 327 / 6.455 / 3.337, Perda 80 / 2.774 / 1.825).\n\n### 7.1 Data Peraturan Daerah\n\n- **Jumlah:** 83 dokumen tahun 2020-2026 hasil scraping situs JDIH Banyumas.\n- **Proses scraping:** daftar per tahun → halaman detail → unduh PDF → ekstraksi teks → PDF dihapus setelah diekstrak.\n- **Hasil ekstraksi:** 92 ditemukan, 9 gagal ekstraksi teks.\n- **Batas yang dipakai:** maksimal 1.000 halaman dan 180 detik per dokumen.\n- **Status hukum:** hanya tersedia untuk Peraturan Daerah; `catatan_relasi` tersedia sebagai teks mentah (46 dari 83 Perda), belum diparsing menjadi relasi terstruktur. `nomor_tahun` menggunakan prefix `"perda_"` untuk mencegah bentrok dengan Perbup.
 
 ### 7.1 Jumlah Dokumen
 
@@ -534,7 +552,7 @@ Peraturan Daerah (Perda) ditambahkan ke database sebagai data tambahan di luar s
 
 - **83 dokumen Peraturan Daerah** tahun **2020–2026** diimpor ke `jdih.db`.
 - **92 dokumen** ditemukan di situs JDIH Banyumas; **9 dokumen** gagal ekstraksi teks (kemungkinan PDF hasil scan/gambar tanpa layer teks); **83 dokumen** berhasil diekstrak dan diimpor dengan `konten_text_asli` terisi penuh.
-- **9.229 pasal** terekstrak dari ke-407 dokumen (Perbup 6.455 + Perda 2.774); **5.162 prosedural** (55,9%).
+- **9.229 pasal** terekstrak dari ke-407 dokumen (Perbup 6.455 + Perda 2.774); **5.162 prosedural (55,9%)**, dengan rincian per jenis (Perbup 327 / 6.455 / 3.337, Perda 80 / 2.774 / 1.825).
 
 ### 7.7.2 Proses Scraping
 
@@ -621,6 +639,11 @@ Jika project dikembangkan lebih jauh, beberapa langkah yang dapat dipertimbangka
 Berikut keterbatasan teknis dan data yang perlu diperhatikan:
 
 1. **Status hukum hanya tersedia untuk Peraturan Daerah, bukan Peraturan Bupati.** Kolom `status_hukum` diisi hanya untuk Perda (83 dokumen). Dokumen Perbup (386) selalu NULL karena data sumbernya tidak mencakup status berlaku/cabut. Filter `status` pada `GET /api/documents` tidak akan berdampak pada dokumen Perbup.
+2. **Catatan relasi belum diparsing menjadi relasi terstruktur.** Kolom `catatan_relasi` berisi teks mentah (46 dari 83 Perda) tentang pencabutan/perubahan, tetapi belum dipetakan ke relasi terstruktur.
+3. **Dokumen tanpa teks.** 47 Perbup dan 9 Perda tidak punya teks.
+4. **Topik belum lengkap.** 53% Perda dan 36% Perbup belum punya topik.
+5. **False positive kata kunci topik.** Kata kunci topik pernah menimbulkan false positive karena pencocokan substring (contoh: "bangunan" cocok dengan "pembangunan") dan sudah diperbaiki dengan pencocokan kata utuh.
+6. **Belum ada evaluasi dengan set pertanyaan nyata.** Belum ada evaluasi dengan set pertanyaan nyata untuk mengukur keberhasilan sistem.
 2. **Catatan relasi belum diparse menjadi relasi terstruktur.** Kolom `catatan_relasi` berisi teks mentah bebas (mis. "Dicabut dengan Peraturan Daerah Nomor 5 Tahun 2022"). Belum ada ekstraksi entitas, referensi dokumen, atau tabel `related_documents` untuk menghubungkan dokumen secara terstruktur.
 3. **47 dokumen Perbup dan 9 Perda tidak punya teks.** 47 dokumen Perbup gagal ekstraksi PDF (scan/gambar tanpa layer teks); 9 Perda juga gagal (dari 92 yang ditemukan, hanya 83 yang berhasil). Dokumen-dokumen ini tidak bisa dilakukan full-text search pada isi, hanya pada judul.
 4. **53% Perda dan 36% Perbup belum punya topik.** Dari 83 Perda, 44 dokumen (53%) tidak memiliki topik karena judul tidak match kata kunci. Dari 386 Perbup, 139 dokumen (36%) juga tidak memiliki topik.

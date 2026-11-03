@@ -1,0 +1,83 @@
+@startuml Backend Architecture - JDIH Fitur Tambahan
+
+skinparam backgroundColor white
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+title Arsitektur Backend JDIH Fitur Tambahan
+
+' Frontend
+package "Frontend (Client)" {
+  [Browser/Web UI] as UI
+}
+
+' API Layer
+package "FastAPI Application (app/main.py)" {
+  [FastAPI App] as FastAPI
+  
+  package "Routers" {
+    [documents.py] as DocRouter
+    [topics.py] as TopicRouter
+    [tahun.py] as TahunRouter
+    [metadata.py] as MetadataRouter
+    [status.py] as StatusRouter
+  }
+}
+
+' Business Logic
+package "Business Logic" {
+  [pasal_extractor.py\nextract_pasal_v2] as PasalExtractor
+  [synonyms.py] as Synonyms
+}
+
+' Database Layer
+package "Database" {
+  [SQLite DB\njdih.db] as SQLite
+  [FTS5 Virtual Table\ndocuments_fts] as FTS5
+  
+  note right of SQLite
+    Tables:
+    - documents (id, judul, nomor, tanggal_terbit, 
+      url_pdf, konten_text, jenis_dokumen, 
+      konten_text_asli, status_hukum, 
+      catatan_relasi, nomor_tahun)
+    - topics (id, label_topik, top_keywords)
+    - document_topics (document_id, topic_id)
+  end note
+}
+
+' Data Import/Scraping
+package "Data Import & Scraping" {
+  [import_real_data.py\nImpor Perbup dari CSV] as ImportReal
+  [import_perda.py\nImpor Perda] as ImportPerda
+  [scraping_perda/\nScraper JDIH] as Scraper
+  [raw_documents_export.csv] as CSV
+}
+
+' Flow
+UI --> FastAPI : HTTP Request
+FastAPI --> DocRouter
+FastAPI --> TopicRouter
+FastAPI --> TahunRouter
+FastAPI --> MetadataRouter
+FastAPI --> StatusRouter
+
+DocRouter --> PasalExtractor : extract_pasal()
+DocRouter --> Synonyms : sinonim_dari()
+DocRouter --> SQLite : Query
+DocRouter --> FTS5 : Full-text search
+
+TopicRouter --> SQLite
+TahunRouter --> SQLite
+MetadataRouter --> SQLite
+StatusRouter --> SQLite
+
+FTS5 --> SQLite
+
+ImportReal --> CSV : Read
+ImportReal --> SQLite : Insert
+ImportPerda --> SQLite : Insert
+Scraper --> ImportPerda : Feed data
+Scraper --> SQLite : Direct insert
+
+@enduml
