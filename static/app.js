@@ -68,6 +68,7 @@ async function fetchStatusHukum() {
 }
 
 function renderStatusOptions(statusList, activeStatus = '') {
+    if (!statusFilter) return;
     statusFilter.innerHTML = '<option value="">Semua Status</option>';
     (statusList || []).forEach(item => {
         const opt = document.createElement('option');
@@ -84,7 +85,7 @@ async function fetchDocuments(params = {}) {
     }
     currentAbortController = new AbortController();
 
-const searchParams = new URLSearchParams();
+    const searchParams = new URLSearchParams();
     if (state.q) searchParams.set('q', state.q);
     if (state.topic) searchParams.set('topic', state.topic);
     if (state.jenis) searchParams.set('jenis', state.jenis);
@@ -151,21 +152,22 @@ async function fetchYearCounts() {
 }
 
 function renderJenisOptions(jenisList) {
-    const defaultJenis = 'Peraturan Bupati';
-    let hasDefault = false;
-
-    jenisFilter.innerHTML = '<option value="">Semua Jenis</option>';
+    if (!jenisFilter) return;
+    // Jika API gagal / kosong, jangan hapus opsi bawaan dari HTML
+    if (!Array.isArray(jenisList) || jenisList.length === 0) {
+        console.warn('Daftar jenis dokumen kosong, memakai opsi bawaan HTML');
+        return;
+    }
+    jenisFilter.innerHTML = '<option value="">Semua Jenis (Perda & Perbup)</option>';
     jenisList.forEach(item => {
         const opt = document.createElement('option');
         opt.value = item.jenis;
         opt.textContent = `${item.jenis} (${item.jumlah})`;
-        if (item.jenis === defaultJenis) hasDefault = true;
         jenisFilter.appendChild(opt);
     });
 
-    if (hasDefault && !state.jenis) {
-        jenisFilter.value = defaultJenis;
-        state.jenis = defaultJenis;
+    if (state.jenis) {
+        jenisFilter.value = state.jenis;
     }
 }
 
@@ -201,7 +203,7 @@ function toggleTopic(topicId) {
 
 function getJenisLabel() {
     const selected = jenisFilter.options[jenisFilter.selectedIndex];
-    if (!selected || !selected.value) return 'SEMUA JENIS';
+    if (!selected || !selected.value) return 'SEMUA DOKUMEN';
     return selected.textContent.split(' (')[0].toUpperCase();
 }
 
@@ -279,10 +281,6 @@ function updateBreadcrumb() {
     }
 }
 
-function getJenisBadgeClass(jenis) {
-    return 'badge-jenis';
-}
-
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -297,11 +295,9 @@ function formatDate(dateStr) {
 }
 
 async function loadDocuments() {
-    console.log('loadDocuments called, state.q:', state.q, 'state.topic:', state.topic);
     docTableBody.innerHTML = '<tr><td colspan="4"><div class="loading" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div>Memuat dokumen...</div></td></tr>';
 
     const result = await fetchDocuments();
-    console.log('fetchDocuments result:', JSON.stringify({ total: result.pagination?.total, docCount: result.data?.length, firstDocProsedur: result.data?.[0]?.prosedur ? 'present' : 'null/missing' }));
     if (result.aborted) return;
     renderDocumentTable(result.data, result.pagination);
 }
@@ -334,14 +330,10 @@ function renderDocumentTable(data, paginationData) {
         const statusHukumBadge = doc.status_hukum
             ? `<span class="badge badge-status-${doc.status_hukum === 'Berlaku' ? 'berlaku' : 'tidak-berlaku'}">${escapeHtml(doc.status_hukum)}</span>`
             : '';
-        const nomor = doc.nomor || '-';
         let prosedurHtml = '';
-
-        console.log('doc.prosedur:', doc.prosedur, 'type:', typeof doc.prosedur);
 
         if (doc.prosedur !== null && doc.prosedur !== undefined) {
             const status = doc.prosedur.status;
-            console.log('prosedur status:', status, 'jumlah_pasal_total:', doc.prosedur.jumlah_pasal_total);
             if (status === 'ditemukan') {
                 const pasalHtml = doc.prosedur.pasal_prosedural.map(p => `
                     <blockquote class="prosedur-blockquote">
@@ -359,16 +351,11 @@ function renderDocumentTable(data, paginationData) {
                         ${pasalHtml}
                     </div>
                 `;
-                console.log('prosedurHtml generated, length:', prosedurHtml.length);
             } else if (status === 'tidak_ditemukan_prosedur') {
                 prosedurHtml = `<div class="prosedur-info">ℹ️ Dokumen ini relevan, tapi tidak ditemukan struktur tata cara yang jelas. Silakan buka dokumen lengkap.</div>`;
             } else if (status === 'tidak_ditemukan_pasal' || status === 'tidak_ada_teks') {
                 prosedurHtml = `<div class="prosedur-info">ℹ️ Dokumen ini belum dapat diproses untuk ekstraksi tata cara.</div>`;
-            } else {
-                console.log('Unknown prosedur status:', status);
             }
-        } else {
-            console.log('doc.prosedur is null/undefined, prosedurHtml stays empty');
         }
 
         return `
@@ -468,6 +455,7 @@ function handleFilterChange() {
 }
 
 function updateStatusNote() {
+    if (!statusNote) return;
     if (state.status) {
         statusNote.removeAttribute('hidden');
     } else {
@@ -476,7 +464,7 @@ function updateStatusNote() {
 }
 
 function onStatusChange() {
-    state.status = statusFilter.value;
+    state.status = statusFilter ? statusFilter.value : '';
     state.page = 1;
     updateStatusNote();
     if (state.view === 'years') {
@@ -491,13 +479,15 @@ function resetFilters() {
     state.q = '';
     state.topic = null;
     state.jenis = '';
+    state.status = '';
     state.tahun = '';
     state.page = 1;
     searchInput.value = '';
-    jenisFilter.value = 'Peraturan Bupati';
-    state.jenis = 'Peraturan Bupati';
+    jenisFilter.value = '';
+    if (statusFilter) statusFilter.value = '';
+    updateStatusNote();
     updateTopicChipsActive();
-    yearsHeading.textContent = `DAFTAR PERATURAN BUPATI`;
+    yearsHeading.textContent = `DAFTAR SEMUA DOKUMEN`;
     switchToYearsView();
 }
 
@@ -530,18 +520,7 @@ async function init() {
         return (data && data.pesan && data.pesan.trim()) ? data.pesan : fallback;
     }
 
-    function _kartuDokumen(doc, statusClass, statusLabel) {
-        return `
-            <div class="tata-cara-doc">
-                <div class="tata-cara-doc-title">${escapeHtml(doc.judul)}</div>
-                <div class="tata-cara-doc-meta">${escapeHtml(doc.nomor)} | ${doc.tahun}</div>
-                <span class="tata-cara-status ${statusClass}">${statusLabel}</span>
-            </div>
-        `;
-    }
-
     function renderTataCaraResult(data) {
-        console.log("renderTataCaraResult dipanggil", data);
         const doc = data.dokumen;
         let html = '';
 
@@ -624,24 +603,30 @@ async function init() {
         tataCaraResult.innerHTML = html;
     }
 
-    tataCaraBtn.addEventListener('click', handleTataCaraSearch);
-    tataCaraInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') handleTataCaraSearch();
-    });
+    if (tataCaraBtn) {
+        tataCaraBtn.addEventListener('click', handleTataCaraSearch);
+    }
+    if (tataCaraInput) {
+        tataCaraInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleTataCaraSearch();
+        });
+    }
 
-    const [topics, jenisList] = await Promise.all([
+    const [topics, jenisList, statusList] = await Promise.all([
         fetchTopics(),
-        fetchJenisDokumen()
+        fetchJenisDokumen(),
+        fetchStatusHukum()
     ]);
     renderTopics(topics);
     renderJenisOptions(jenisList);
-    yearsHeading.textContent = `DAFTAR PERATURAN BUPATI`;
+    renderStatusOptions(statusList);
+    yearsHeading.textContent = `DAFTAR SEMUA DOKUMEN`;
     await renderYearGrid();
 }
 
-searchInput.addEventListener('input', onSearchInput);
-jenisFilter.addEventListener('change', onJenisChange);
-statusFilter.addEventListener('change', onStatusChange);
-  resetBtn.addEventListener('click', resetFilters);
+if (searchInput) searchInput.addEventListener('input', onSearchInput);
+if (jenisFilter) jenisFilter.addEventListener('change', onJenisChange);
+if (statusFilter) statusFilter.addEventListener('change', onStatusChange);
+if (resetBtn) resetBtn.addEventListener('click', resetFilters);
 
 init();

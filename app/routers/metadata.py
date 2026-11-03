@@ -21,8 +21,9 @@ async def get_jenis_dokumen():
 async def get_tahun():
     with get_db() as conn:
         rows = conn.execute("""
-            SELECT DISTINCT strftime('%Y', tanggal_terbit) as tahun
+            SELECT DISTINCT LEFT(tanggal_terbit, 4) as tahun
             FROM documents
+            WHERE tanggal_terbit IS NOT NULL AND tanggal_terbit <> ''
             ORDER BY tahun DESC
         """).fetchall()
 
