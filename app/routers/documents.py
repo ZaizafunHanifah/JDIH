@@ -28,22 +28,35 @@ router = APIRouter(prefix="/api/documents", tags=["documents"])
 _COMMON_WORDS = {"cara", "bagaimana", "yang", "untuk", "dengan", "dari", "pada"}
 
 
-def _fts5_match_string(query_text: str, pakai_sinonim: bool = True) -> str:
-    """Bangun query pencarian teks."""
+def _postgres_tsquery(query_text: str, pakai_sinonim: bool = True):
     keywords = _extract_main_keywords(query_text)
     if not keywords:
-        semua_kata = [w for w in query_text.strip().split() if len(w) > 1]
-        return " & ".join(semua_kata)
+        return "plainto_tsquery('simple', %s)", [query_text]
 
-    grup = []
-    for kw in keywords:
-        kata_kunci = sinonim_dari(kw) if pakai_sinonim else [kw]
-        if len(kata_kunci) == 1:
-            grup.append(kata_kunci[0])
-        else:
-            grup.append("(" + " | ".join(k for k in kata_kunci) + ")")
+    groups = []
+    params = []
+    for keyword in keywords:
+        variants = sinonim_dari(keyword) if pakai_sinonim else [keyword]
+        groups.append(
+            "(" + " || ".join("plainto_tsquery('simple', %s)" for _ in variants) + ")"
+        )
+        params.extend(variants)
 
-    return " & ".join(grup)
+    return "(" + " && ".join(groups) + ")", params
+
+
+def _postgres_search_params(query_text: str, limit: int | None = None, pakai_sinonim: bool = True):
+    tsquery, params = _postgres_tsquery(query_text, pakai_sinonim=pakai_sinonim)
+    sql = """
+        SELECT d.id, d.judul, d.nomor, substr(d.tanggal_terbit, 1, 4) AS tahun,
+               d.url_pdf, d.konten_text_asli
+        FROM documents d
+        WHERE d.konten_tsv @@ {tsquery}
+        ORDER BY ts_rank(d.konten_tsv, {tsquery}) DESC
+    """
+    if limit:
+        sql += " LIMIT %s"
+    return sql.format(tsquery=tsquery), params * 2 + ([limit] if limit else [])
 
 
 _QUESTION_WORDS = {"bagaimana", "dimana", "apakah", "kenapa", "mengapa"}
@@ -188,15 +201,13 @@ def _cari_pasal_relevan(doc_row, keywords: list[str], pakai_sinonim: bool = True
 
 
 def _fetch_document_topics(conn, doc_id: int):
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT t.id, t.label_topik
-            FROM topics t
-            JOIN document_topics dt ON t.id = dt.topic_id
-            WHERE dt.document_id = %s
-            ORDER BY t.id
-        """, (doc_id,))
-        return cur.fetchall()
+    return conn.execute("""
+        SELECT t.id, t.label_topik
+        FROM topics t
+        JOIN document_topics dt ON t.id = dt.topic_id
+        WHERE dt.document_id = ?
+        ORDER BY t.id
+    """, (doc_id,)).fetchall()
 
 
 def get_prosedur_untuk_dokumen(doc_row):
@@ -234,65 +245,63 @@ def get_prosedur_untuk_dokumen(doc_row):
 
 @router.get("")
 async def get_documents(
-    q: str | None = Query(None, description="Kata kunci pencarian"),
+    q: str | None = Query(None, description="Kata kunci full-text search"),
     topic: int | None = Query(None, description="Filter by topic ID"),
-    jenis: str | None = Query(None, description="Filter jenis dokumen (Peraturan Bupati, Peraturan Daerah, dll)"),
+    jenis: str | None = Query(None, description="Filter jenis dokumen (Peraturan Bupati, Peraturan Daerah, Surat Keputusan, Surat Edaran, Peraturan Desa)"),
     status: str | None = Query(None, description="Filter status hukum (Berlaku / Tidak Berlaku)"),
     tahun: int | None = Query(None, ge=2000, le=2030, description="Filter tahun terbit"),
     sort: str = Query("terbaru", pattern="^(terbaru|relevansi)$", description="Urutan: terbaru atau relevansi"),
     page: int = Query(1, ge=1, description="Halaman (1-based)"),
-    limit: int | None = Query(10, ge=1, le=100, description="Jumlah per halaman"),
+    limit: int = Query(10, ge=1, le=100, description="Jumlah per halaman"),
 ):
-    if limit is None:
-        limit = 10
-
     offset = (page - 1) * limit
-    use_search = q is not None and q.strip() != ""
+    use_fts = q is not None and q.strip() != ""
+    sort_by_relevance = sort == "relevansi" and use_fts
 
     with get_db() as conn:
-        base_query = "FROM documents d WHERE 1=1"
-        params = []
-
-        if use_search:
-            base_query += " AND (d.judul ILIKE %s OR d.konten_text_asli ILIKE %s)"
-            search_term = f"%{q.strip()}%"
-            params.extend([search_term, search_term])
+        if use_fts:
+            tsquery, params = _postgres_tsquery(q.strip())
+            search_params = params.copy()
+            base_query = f"FROM documents d WHERE d.konten_tsv @@ {tsquery}"
+        else:
+            base_query = "FROM documents d WHERE 1=1"
+            params = []
+            search_params = []
 
         if topic is not None:
-            base_query += " AND EXISTS (SELECT 1 FROM document_topics dt WHERE dt.document_id = d.id AND dt.topic_id = %s)"
+            base_query += " AND EXISTS (SELECT 1 FROM document_topics dt WHERE dt.document_id = d.id AND dt.topic_id = ?)"
             params.append(topic)
 
-        if jenis is not None and jenis.strip() != "":
-            base_query += " AND d.jenis_dokumen = %s"
+        if jenis is not None:
+            base_query += " AND d.jenis_dokumen = ?"
             params.append(jenis)
 
         if tahun is not None:
-            base_query += " AND SUBSTRING(d.tanggal_terbit, 1, 4) = %s"
+            base_query += " AND LEFT(d.tanggal_terbit, 4) = ?"
             params.append(str(tahun))
 
         if status is not None:
-            base_query += " AND d.status_hukum = %s"
+            base_query += " AND d.status_hukum = ?"
             params.append(status)
 
-        order_clause = "ORDER BY d.tanggal_terbit DESC"
+        if sort_by_relevance:
+            order_clause = f"ORDER BY ts_rank(d.konten_tsv, {tsquery}) DESC, d.tanggal_terbit DESC"
+            order_params = search_params
+        else:
+            order_clause = "ORDER BY d.tanggal_terbit DESC"
+            order_params = []
 
         count_query = f"SELECT COUNT(DISTINCT d.id) {base_query}"
-        with conn.cursor() as cur:
-            cur.execute(count_query, params)
-            total_row = cur.fetchone()
-            total = total_row[0] if total_row else 0
+        total = conn.execute(count_query, params).fetchone()[0]
 
         data_query = f"""
             SELECT d.id, d.judul, d.nomor, d.tanggal_terbit, d.url_pdf, d.konten_text_asli, d.jenis_dokumen, d.status_hukum, d.catatan_relasi
             {base_query}
             {order_clause}
-            LIMIT %s OFFSET %s
+            LIMIT ? OFFSET ?
         """
-        data_params = params + [limit, offset]
-
-        with conn.cursor() as cur:
-            cur.execute(data_query, data_params)
-            rows = cur.fetchall()
+        data_params = params + order_params + [limit, offset]
+        rows = conn.execute(data_query, data_params).fetchall()
 
     results = []
     with get_db() as conn:
@@ -321,7 +330,7 @@ async def get_documents(
             "page": page,
             "limit": limit,
             "total": total,
-            "total_pages": (total + limit - 1) // limit if limit > 0 else 1
+            "total_pages": (total + limit - 1) // limit
         }
     }
 
@@ -329,13 +338,11 @@ async def get_documents(
 @router.get("/{doc_id}/prosedur")
 async def get_document_prosedur(doc_id: int):
     with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT id, judul, nomor, tanggal_terbit, url_pdf, konten_text_asli, jenis_dokumen
-                FROM documents
-                WHERE id = %s
-            """, (doc_id,))
-            row = cur.fetchone()
+        row = conn.execute("""
+            SELECT id, judul, nomor, tanggal_terbit, url_pdf, konten_text_asli, jenis_dokumen
+            FROM documents
+            WHERE id = ?
+        """, (doc_id,)).fetchone()
 
     if not row:
         raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
@@ -379,7 +386,7 @@ async def tata_cara(q: str = Query(..., description="Pertanyaan tentang tata car
                 "id": row["id"],
                 "judul": row["judul"],
                 "nomor": row["nomor"],
-                "tahun": str(row["tanggal_terbit"])[:4] if row["tanggal_terbit"] else None,
+                "tahun": row["tahun"],
                 "url_pdf": row["url_pdf"],
             },
         }
@@ -392,7 +399,7 @@ async def tata_cara(q: str = Query(..., description="Pertanyaan tentang tata car
             "id": row["id"],
             "judul": row["judul"],
             "nomor": row["nomor"],
-            "tahun": str(row["tanggal_terbit"])[:4] if row["tanggal_terbit"] else None,
+            "tahun": row["tahun"],
             "url_pdf": row["url_pdf"],
         },
         "prosedur": {
@@ -412,39 +419,16 @@ async def tata_cara(q: str = Query(..., description="Pertanyaan tentang tata car
     }
 
 
-def bangun_tsquery(keywords, pakai_sinonim):
-    groups = []
-    for kw in keywords:
-        if not pakai_sinonim:
-            terms = [kw]
-        else:
-            terms = sinonim_dari(kw)
-        clean = []
-        for t in terms:
-            t2 = re.sub(r'[^a-zA-Z0-9]', '', t)
-            if t2:
-                clean.append(t2)
-        if not clean:
-            continue
-        group = ' | '.join(clean)
-        if len(clean) > 1:
-            group = '(' + group + ')'
-        groups.append(group)
-    return ' & '.join(groups)
+def _cari_tahap(q: str, keywords: list[str], pakai_sinonim: bool):
+    """Cari dokumen non-perubahan yang punya minimal 1 pasal lolos.
 
-def _cari_tahap(q, keywords, pakai_sinonim):
-    tsq = bangun_tsquery(keywords, pakai_sinonim)
+    Kandidat perubahan hanya dipakai bila tidak ada kandidat non-perubahan
+    yang lolos di tahap ini. None bila tidak ada hasil sama sekali.
+    """
+    fts_sql, fts_params = _postgres_search_params(q, limit=10, pakai_sinonim=pakai_sinonim)
+
     with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT id, judul, nomor, tanggal_terbit, url_pdf, konten_text_asli, jenis_dokumen, status_hukum,
-                       ts_rank(konten_tsv, to_tsquery('simple', %s)) AS rank
-                FROM documents
-                WHERE konten_tsv @@ to_tsquery('simple', %s)
-                ORDER BY rank DESC
-                LIMIT 10
-            """, (tsq, tsq))
-            candidates = cur.fetchall()
+        candidates = conn.execute(fts_sql, fts_params).fetchall()
 
     hasil_perubahan = None
 
@@ -465,13 +449,11 @@ def _cari_tahap(q, keywords, pakai_sinonim):
 @router.get("/{doc_id}")
 async def get_document(doc_id: int):
     with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT id, judul, nomor, tanggal_terbit, url_pdf, konten_text, jenis_dokumen
-                FROM documents
-                WHERE id = %s
-            """, (doc_id,))
-            row = cur.fetchone()
+        row = conn.execute("""
+            SELECT id, judul, nomor, tanggal_terbit, url_pdf, konten_text, jenis_dokumen
+            FROM documents
+            WHERE id = ?
+        """, (doc_id,)).fetchone()
 
         if not row:
             raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")

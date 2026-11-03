@@ -105,14 +105,13 @@ async function fetchDocuments(params = {}) {
         const res = await fetch(`${API_BASE}/documents?${searchParams.toString()}`, {
             signal: currentAbortController.signal
         });
-        if (!res.ok) throw new Error('Gagal memuat dokumen');
+        if (!res.ok) throw new Error(`Gagal memuat dokumen (${res.status})`);
         return await res.json();
     } catch (err) {
         if (err.name === 'AbortError') {
             return { data: [], pagination: { total: 0, page: 1, total_pages: 1 }, aborted: true };
         }
-        console.error('fetchDocuments error:', err);
-        return { data: [], pagination: { total: 0, page: 1, total_pages: 1 } };
+        throw err;
     }
 }
 
@@ -126,12 +125,12 @@ async function fetchYearCount(tahun, jenis, topic, status) {
 
     try {
         const res = await fetch(`${API_BASE}/documents?${params.toString()}`);
-        if (!res.ok) return { tahun, total: 0 };
+        if (!res.ok) throw new Error(`Gagal memuat jumlah dokumen tahun ${tahun} (${res.status})`);
         const data = await res.json();
         return { tahun, total: data.pagination?.total || 0 };
     } catch (err) {
         console.error(`fetchYearCount error for ${tahun}:`, err);
-        return { tahun, total: 0 };
+        throw err;
     }
 }
 
@@ -210,7 +209,18 @@ function getJenisLabel() {
 async function renderYearGrid() {
     yearGrid.innerHTML = '<div class="loading" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div>Memuat jumlah dokumen per tahun...</div>';
 
-    const counts = await fetchYearCounts();
+    const countsPromise = fetchYearCounts();
+    const requestVersion = yearFetchVersion;
+    let counts;
+    try {
+        counts = await countsPromise;
+    } catch (err) {
+        if (requestVersion !== yearFetchVersion) return;
+        console.error('renderYearGrid error:', err);
+        yearGrid.innerHTML = '<div role="alert">Gagal memuat data dari server/database. Periksa koneksi database, lalu <button type="button" id="retryYearGrid">coba lagi</button>.</div>';
+        document.getElementById('retryYearGrid').addEventListener('click', renderYearGrid);
+        return;
+    }
     if (!counts) return;
 
     const years = Array.from({ length: 16 }, (_, i) => 2011 + i);
@@ -297,9 +307,17 @@ function formatDate(dateStr) {
 async function loadDocuments() {
     docTableBody.innerHTML = '<tr><td colspan="4"><div class="loading" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div>Memuat dokumen...</div></td></tr>';
 
-    const result = await fetchDocuments();
-    if (result.aborted) return;
-    renderDocumentTable(result.data, result.pagination);
+    try {
+        const result = await fetchDocuments();
+        if (result.aborted) return;
+        renderDocumentTable(result.data, result.pagination);
+    } catch (err) {
+        console.error('loadDocuments error:', err);
+        docTableBody.innerHTML = '<tr><td colspan="4"><div role="alert">Gagal memuat dokumen dari server/database. Periksa koneksi, lalu muat ulang halaman.</div></td></tr>';
+        showingCount.textContent = '0';
+        totalCount.textContent = '0';
+        pagination.innerHTML = '';
+    }
 }
 
 function renderDocumentTable(data, paginationData) {
@@ -351,6 +369,8 @@ function renderDocumentTable(data, paginationData) {
                         ${pasalHtml}
                     </div>
                 `;
+            } else if (status === 'tidak_ditemukan_prosedur') {
+                prosedurHtml = `<div class="prosedur-info">ℹ️ Dokumen ini relevan, tapi tidak ditemukan struktur tata cara yang jelas. Silakan buka dokumen lengkap.</div>`;
             } else if (status === 'tidak_ditemukan_pasal' || status === 'tidak_ada_teks') {
                 prosedurHtml = `<div class="prosedur-info">ℹ️ Dokumen ini belum dapat diproses untuk ekstraksi tata cara.</div>`;
             }
