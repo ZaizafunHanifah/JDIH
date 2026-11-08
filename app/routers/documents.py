@@ -3,7 +3,7 @@ import re
 
 from fastapi import APIRouter, Query, HTTPException
 from app.db import get_db
-from app.pasal_extractor import extract_pasal
+from app.pasal_extractor import extract_pasal, potong_penjelasan
 from app.synonyms import sinonim_dari
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -144,7 +144,8 @@ def _is_dokumen_perubahan(judul: str, valid_pasals: list[dict]) -> bool:
 
 
 def _cari_pasal_relevan(doc_row, keywords: list[str], pakai_sinonim: bool = True):
-    valid_pasals = extract_pasal(doc_row["konten_text_asli"])
+    teks = potong_penjelasan(doc_row["konten_text_asli"])
+    valid_pasals = extract_pasal(teks)
     if not valid_pasals:
         return None, []
 
@@ -389,34 +390,55 @@ async def tata_cara(q: str = Query(..., description="Pertanyaan tentang tata car
     }
 
 
-def _cari_tahap(q: str, keywords: list[str], pakai_sinonim: bool):
-    search_query = f"%{q.strip()}%"
+def bangun_tsquery(keywords, pakai_sinonim):
+    groups = []
+    for kw in keywords:
+        if not pakai_sinonim:
+            terms = [kw]
+        else:
+            terms = sinonim_dari(kw)
+        clean = []
+        for t in terms:
+            t2 = re.sub(r'[^a-zA-Z0-9]', '', t)
+            if t2:
+                clean.append(t2)
+        if not clean:
+            continue
+        group = ' | '.join(clean)
+        if len(clean) > 1:
+            group = '(' + group + ')'
+        groups.append(group)
+    return ' & '.join(groups)
+
+def _cari_tahap(q, keywords, pakai_sinonim):
+    tsq = bangun_tsquery(keywords, pakai_sinonim)
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT id, judul, nomor, tanggal_terbit, url_pdf, konten_text_asli, jenis_dokumen, status_hukum
+                SELECT id, judul, nomor, tanggal_terbit, url_pdf, konten_text_asli, jenis_dokumen, status_hukum,
+                       ts_rank(konten_tsv, to_tsquery('simple', %s)) AS rank
                 FROM documents
-                WHERE judul ILIKE %s OR konten_text_asli ILIKE %s
+                WHERE konten_tsv @@ to_tsquery('simple', %s)
+                ORDER BY rank DESC
                 LIMIT 10
-            """, (search_query, search_query))
+            """, (tsq, tsq))
             candidates = cur.fetchall()
 
     hasil_perubahan = None
 
     for row in candidates:
-        if not row["konten_text_asli"] or not row["konten_text_asli"].strip():
+        if not row['konten_text_asli'] or not row['konten_text_asli'].strip():
             continue
         lolos, valid_pasals = _cari_pasal_relevan(row, keywords, pakai_sinonim=pakai_sinonim)
         if not lolos:
             continue
-        perubahan = _is_dokumen_perubahan(row["judul"], valid_pasals)
+        perubahan = _is_dokumen_perubahan(row['judul'], valid_pasals)
         if not perubahan:
             return row, lolos, valid_pasals, False
         if hasil_perubahan is None:
             hasil_perubahan = (row, lolos, valid_pasals, True)
 
     return hasil_perubahan
-
 
 @router.get("/{doc_id}")
 async def get_document(doc_id: int):

@@ -99,9 +99,10 @@ def import_data():
                 jenis_dokumen = "Peraturan Bupati"
 
                 cur.execute(
-                    """INSERT INTO documents (judul, nomor, tanggal_terbit, jenis_dokumen, url_pdf, konten_text)
-                       VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
-                    (judul, nomor, tanggal_terbit, jenis_dokumen, url_pdf, konten_text)
+                    """INSERT INTO documents (judul, nomor, tanggal_terbit, jenis_dokumen, url_pdf, konten_text, konten_text_asli)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                    (judul, nomor, tanggal_terbit, jenis_dokumen, url_pdf, konten_text, None)
+                    # konten_text_asli sengaja NULL: teks mentah diisi oleh import_raw_content.py
                 )
                 doc_id = cur.fetchone()[0]
                 doc_ids.append(doc_id)

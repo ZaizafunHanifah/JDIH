@@ -35,3 +35,10 @@ Thumbs.db
 .coverage
 htmlcov/
 .pytest_cache/
+jdih_pg_backup_*.sql
+tmp_*.py
+report2.py
+topik_tfidf/
+docs/hasil_pyc.md
+__pycache__/
+venv/

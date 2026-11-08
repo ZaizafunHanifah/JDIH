@@ -8,7 +8,7 @@ DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "jdih")
 DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "fwz")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
 
 
 class ConnWrapper:
@@ -86,6 +86,42 @@ def init_db():
                 cursor.execute("ALTER TABLE documents ADD COLUMN catatan_relasi TEXT")
             if "nomor_tahun" not in columns:
                 cursor.execute("ALTER TABLE documents ADD COLUMN nomor_tahun TEXT")
+
+            # Full-text search (Postgres native, pengganti FTS5 SQLite)
+            if "konten_tsv" not in columns:
+                cursor.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS konten_tsv tsvector")
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_documents_tsv
+                ON documents USING GIN (konten_tsv)
+            """)
+
+            cursor.execute("""
+                CREATE OR REPLACE FUNCTION documents_tsv_update() RETURNS trigger AS $$
+                BEGIN
+                    NEW.konten_tsv := to_tsvector('simple',
+                        coalesce(NEW.judul, '') || ' ' ||
+                        coalesce(NEW.konten_text_asli, '') || ' ' ||
+                        coalesce(NEW.konten_text, ''));
+                    RETURN NEW;
+                END
+                $$ LANGUAGE plpgsql;
+            """)
+
+            cursor.execute("""
+                DROP TRIGGER IF EXISTS trg_documents_tsv ON documents;
+                CREATE TRIGGER trg_documents_tsv
+                BEFORE INSERT OR UPDATE ON documents
+                FOR EACH ROW EXECUTE FUNCTION documents_tsv_update();
+            """)
+
+            cursor.execute("""
+                UPDATE documents SET konten_tsv = to_tsvector('simple',
+                    coalesce(judul, '') || ' ' ||
+                    coalesce(konten_text_asli, '') || ' ' ||
+                    coalesce(konten_text, ''))
+                WHERE konten_tsv IS NULL
+            """)
 
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS topics (

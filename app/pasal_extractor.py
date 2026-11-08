@@ -191,3 +191,31 @@ if __name__ == "__main__":
                     f"ada_penomoran_ayat={p['ada_penomoran_ayat']}, "
                     f"terpotong={p['terpotong']}"
                 )
+
+import re as _re
+
+_MARKERS_PENJELASAN = ['PENJELASAN ATAS', 'PENJELASAN', 'TAMBAHAN LEMBARAN DAERAH', 'TAMBAHAN BERITA DAERAH', 'I. UMUM', 'II. PASAL DEMI PASAL']
+
+def potong_penjelasan(teks):
+    if not teks:
+        return teks
+    low = teks.lower()
+    last_boundary = -1
+    for m in _re.finditer(r'pasal\\s+\\d+', low):
+        seg = low[m.start():m.start() + 2000]
+        if 'mulai berlaku' in seg or 'diundangkan' in seg:
+            last_boundary = m.start()
+    if last_boundary < 0:
+        return teks
+    p1 = low.find('pasal 1')
+    if p1 < 0 or last_boundary <= p1:
+        return teks
+    earliest = None
+    for m in _MARKERS_PENJELASAN:
+        i = low.find(m.lower(), last_boundary + 1)
+        if i >= 0 and (earliest is None or i < earliest):
+            earliest = i
+    if earliest is None:
+        return teks
+    return teks[:earliest].rstrip()
+
