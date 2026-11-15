@@ -56,6 +56,10 @@ def _strip_prefix(word: str) -> str:
 
 _AFFIX_SUFFIXES = ("nya", "kan", "an", "i")
 
+# Stem yang jangan diperluas dengan awalan/akhiran agar kata dasar
+# tidak menimpa frasa yang mengandungnya sebagai bagian kata lain.
+_STEM_EXCEPTIONS = {"dasar"}
+
 
 def _strip_affixes(word: str) -> str:
     """Lepas awalan lalu akhiran (kan|an|i|nya) selama sisa >= 4 huruf."""
@@ -73,6 +77,8 @@ def _strip_affixes(word: str) -> str:
 
 def _keyword_pattern(keyword: str) -> re.Pattern:
     stem = _strip_affixes(keyword)
+    if stem in _STEM_EXCEPTIONS:
+        return re.compile(rf"\b{re.escape(keyword)}\b", re.IGNORECASE)
     if len(stem) < 4:
         return re.compile(rf"\b{re.escape(keyword)}\b", re.IGNORECASE)
     return re.compile(
