@@ -64,6 +64,25 @@ _BAB_JUDUL_PATTERN = re.compile(r"^\s*BAB\s+[IVXLC]+\s*$", re.MULTILINE)
 
 _MAX_LONJAT_NOMOR = 5
 
+# Pola pembersihan teks pasal
+_FOOTER_JDIH = re.compile(r"\s+JDIH Kabupaten Banyumas\s+", re.IGNORECASE)
+_PARAGRAF_AKHIR = re.compile(
+    r"\n\s*(Paragraf|Bagian|Bab)\s+[\dIVX]+\b.*\s*$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def bersihkan_isi_pasal(isi: str) -> str:
+    """Hapus footer JDIH Kabupaten Banyumas (di mana pun muncul, termasuk
+    di tengah teks antar ayat karena pindah halaman) dan judul bagian yang
+    menempel di akhir pasal (baris yang diawali Paragraf/Bagian/Bab +
+    nomor/urutan)."""
+    if not isi:
+        return isi
+    isi = _FOOTER_JDIH.sub(" ", isi)
+    isi = _PARAGRAF_AKHIR.sub("", isi)
+    return isi.strip()
+
 
 def _bangun_hasil_pasal(after: str, valid: list[re.Match]) -> list[dict]:
     result = []
@@ -82,6 +101,8 @@ def _bangun_hasil_pasal(after: str, valid: list[re.Match]) -> list[dict]:
         bab = _BAB_JUDUL_PATTERN.search(isi_penuh)
         if bab:
             isi_penuh = isi_penuh[:bab.start()].strip()
+
+        isi_penuh = bersihkan_isi_pasal(isi_penuh)
 
         prosedural = is_procedural(isi_penuh)
 
