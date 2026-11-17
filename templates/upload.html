@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Peraturan - JDIH Kabupaten Banyumas</title>
+    <style>
+        :root {
+            --primary: #E53935;
+            --primary-dark: #C62828;
+            --text-dark: #212121;
+            --text-muted: #757575;
+            --text-light: #FFFFFF;
+            --bg-page: #FAFAFA;
+            --bg-card: #FFFFFF;
+            --border-light: #E0E0E0;
+            --shadow-sm: 0 2px 6px rgba(229, 57, 53, 0.08);
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-pill: 50px;
+            --transition: 0.2s ease;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background: var(--bg-page);
+            color: var(--text-dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        a { color: inherit; text-decoration: none; }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px 40px;
+            flex: 1;
+        }
+
+        .header-bar {
+            background: var(--primary);
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--text-light);
+            padding: 14px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            border-bottom: 3px solid rgba(255,255,255,0.25);
+        }
+        .header-bar .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            max-width: 1200px;
+        }
+        .header-title {
+            font-size: 19px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .nav-link {
+            color: var(--text-light);
+            padding: 8px 16px;
+            border-radius: var(--radius-pill);
+            transition: background var(--transition);
+        }
+        .nav-link:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .upload-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            margin: 40px 0;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            max-width: 600px;
+        }
+
+        .section-heading {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--primary);
+            display: inline-block;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-md);
+            background: var(--bg-page);
+            color: var(--text-dark);
+            transition: border-color var(--transition);
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+        }
+        .form-control::placeholder { color: var(--text-muted); }
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .file-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px 24px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-light);
+            background: var(--primary);
+            border: none;
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            transition: all var(--transition);
+            margin-top: 8px;
+        }
+        .btn-submit:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
+        }
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .alert-error {
+            background: #FDEDEC;
+            color: var(--primary-dark);
+            border: 1px solid var(--primary-border, #F5C6C4);
+        }
+        .alert-success {
+            background: #E8F5E9;
+            color: #2E7D32;
+            border: 1px solid #C8E6C9;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        .site-footer {
+            background: #EEEEEE;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 18px 10px;
+            font-size: 0.78rem;
+            border-top: 1px solid var(--border-light);
+            margin-top: auto;
+        }
+
+        @media (max-width: 640px) {
+            .upload-card { padding: 24px 16px; margin: 20px 0; }
+            .header-title { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header-bar">
+        <div class="container">
+            <div class="header-title">JDIH KABUPATEN BANYUMAS</div>
+            <a href="/" class="nav-link">← Kembali ke Pencarian</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="upload-card">
+            <div class="section-heading">Upload Peraturan Baru</div>
+
+            <div id="alertError" class="alert alert-error"></div>
+            <div id="alertSuccess" class="alert alert-success"></div>
+
+            <form id="uploadForm">
+                <div class="form-group">
+                    <label for="judul" class="form-label">Judul Peraturan <span style="color:var(--primary)">*</span></label>
+                    <input type="text" id="judul" name="judul" class="form-control" placeholder="Contoh: Peraturan Tentang Tata Cara Pendaftaran" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="nomor" class="form-label">Nomor Peraturan</label>
+                    <input type="text" id="nomor" name="nomor" class="form-control" placeholder="Contoh: 5/2025">
+                </div>
+
+                <div class="form-group">
+                    <label for="tanggal_terbit" class="form-label">Tanggal Terbit</label>
+                    <input type="date" id="tanggal_terbit" name="tanggal_terbit" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="jenis_dokumen" class="form-label">Jenis Dokumen</label>
+                    <select id="jenis_dokumen" name="jenis_dokumen" class="form-control" required>
+                        <option value="Peraturan Bupati">Peraturan Bupati</option>
+                        <option value="Peraturan Daerah">Peraturan Daerah</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="status_hukum" class="form-label">Status Hukum</label>
+                    <select id="status_hukum" name="status_hukum" class="form-control">
+                        <option value="Berlaku">Berlaku</option>
+                        <option value="Tidak Berlaku">Tidak Berlaku</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="catatan_relasi" class="form-label">Catatan Relasi</label>
+                    <textarea id="catatan_relasi" name="catatan_relasi" class="form-control" placeholder="Misal: mencabut Peraturan Bupati Nomor 3 Tahun 2020"></textarea>
+                    <div class="file-hint">Opsional: sebutkan peraturan yang dicabut atau diubah.</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="file" class="form-label">File PDF <span style="color:var(--primary)">*</span></label>
+                    <input type="file" id="file" name="file" class="form-control" accept=".pdf" required>
+                    <div class="file-hint">Hanya file PDF. Teks akan diekstrak otomatis dari file yang diupload.</div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="btnSubmit">Simpan Peraturan</button>
+            </form>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <p>JDIH Kabupaten Banyumas &copy; 2026</p>
+    </footer>
+
+    <script>
+        const alertError = document.getElementById('alertError');
+        const alertSuccess = document.getElementById('alertSuccess');
+        const uploadForm = document.getElementById('uploadForm');
+        const btnSubmit = document.getElementById('btnSubmit');
+
+        function showAlert(el, msg) {
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 5000);
+        }
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            alertError.style.display = 'none';
+            alertSuccess.style.display = 'none';
+
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Mengupload...';
+
+            const formData = new FormData(uploadForm);
+
+            try {
+                const res = await fetch('/api/documents/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showAlert(alertError, data.error || 'Gagal mengupload dokumen');
+                    return;
+                }
+
+                showAlert(alertSuccess, data.message);
+                uploadForm.reset();
+            } catch (err) {
+                showAlert(alertError, 'Terjadi kesalahan jaringan, coba lagi nanti');
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Simpan Peraturan';
+            }
+        });
+    </script>
+</body>
+</html>

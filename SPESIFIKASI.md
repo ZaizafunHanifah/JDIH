@@ -21,7 +21,7 @@ Project ini membangun demo aplikasi pencarian produk hukum dengan fitur utama be
 
 ### 1.3 Posisi Project
 
-Project ini merupakan **layer tambahan atau demo yang terpisah dari web JDIH resmi**. Aplikasi tidak membaca atau menulis data JDIH produksi. Database saat ini berisi **407 dokumen** yang terdiri dari **327 Peraturan Bupati** dan **80 Peraturan Daerah** Kabupaten Banyumas asli, diimpor dari hasil pengumpulan data skripsi penulis (bukan hasil karangan/generate). Di antaranya terdapat **9.229 pasal** dan **5.162 prosedural (55,9%)**, dengan rincian per jenis (Perbup 327 / 6.455 / 3.337, Perda 80 / 2.774 / 1.825). Karena itu, tautan PDF dan isi dokumen dalam demo mencerminkan data nyata namun tidak boleh dianggap sebagai dokumen hukum resmi tanpa verifikasi lebih lanjut.
+Project ini merupakan **layer tambahan atau demo yang terpisah dari web JDIH resmi**. Aplikasi tidak membaca atau menulis data JDIH produksi. Database saat ini berisi **469 dokumen** yang terdiri dari **386 Peraturan Bupati** dan **83 Peraturan Daerah** Kabupaten Banyumas asli, diimpor dari hasil pengumpulan data skripsi penulis (bukan hasil karangan/generate). Di antaranya terdapat **9.229 pasal** dan **5.162 prosedural (55,9%)**, dengan rincian per jenis (Perbup 386 / 6.455 / 3.337, Perda 83 / 2.774 / 1.825). Karena itu, tautan PDF dan isi dokumen dalam demo mencerminkan data nyata namun tidak boleh dianggap sebagai dokumen hukum resmi tanpa verifikasi lebih lanjut.
 
 ## 2. Tech Stack
 
@@ -90,7 +90,7 @@ Alur umum pengguna adalah sebagai berikut:
 
 FTS5 dipilih karena kebutuhan utama adalah pencarian teks yang lebih baik daripada `LIKE`, tetapi project tetap ingin berjalan dengan satu database dan tanpa layanan tambahan seperti Elasticsearch. FTS5 membuat indeks terbalik untuk kolom teks, sehingga pencarian kata pada judul dan isi dapat dilakukan dengan `MATCH` dan dapat diurutkan berdasarkan relevansi menggunakan `bm25`.
 
-Elasticsearch atau layanan sejenis lebih cocok ketika data sangat besar, kueri sangat kompleks, atau diperlukan distribusi dan analitik pencarian tingkat lanjut. Untuk **407 dokumen asli** dan kebutuhan demonstrasi saat ini, FTS5 memberikan manfaat yang cukup dengan biaya operasional yang jauh lebih rendah.
+Elasticsearch atau layanan sejenis lebih cocok ketika data sangat besar, kueri sangat kompleks, atau diperlukan distribusi dan analitik pencarian tingkat lanjut. Untuk **469 dokumen asli** dan kebutuhan demonstrasi saat ini, FTS5 memberikan manfaat yang cukup dengan biaya operasional yang jauh lebih rendah.
 
 ### 3.3 Sinkronisasi FTS dengan Trigger
 
@@ -337,7 +337,7 @@ GET /api/jenis-dokumen
 ]
 ```
 
-**Kegunaan:** mengisi dropdown filter jenis dokumen dan memberi informasi distribusi jenis dokumen. Pada data asli, terdapat dua jenis dokumen — Peraturan Bupati (327) dan Peraturan Daerah (80). Disarankan untuk menampilkan informasi agregat (407 dokumen, 9.229 pasal, 5.162 prosedural, 55,9%) dengan rincian per jenis (Perbup 327 / 6.455 / 3.337, Perda 80 / 2.774 / 1.825).
+**Kegunaan:** mengisi dropdown filter jenis dokumen dan memberi informasi distribusi jenis dokumen. Pada data asli, terdapat dua jenis dokumen — Peraturan Bupati (386) dan Peraturan Daerah (83). Disarankan untuk menampilkan informasi agregat (469 dokumen, 9.229 pasal, 5.162 prosedural, 55,9%) dengan rincian per jenis (Perbup 386 / 6.455 / 3.337, Perda 83 / 2.774 / 1.825).
 
 ### 5.5 `GET /api/status-hukum`
 
@@ -458,7 +458,7 @@ Kedua mekanisme ini penting karena permintaan API dapat selesai dalam urutan yan
 
 ## 7. Data Saat Ini
 
-Data saat ini adalah **data asli 407 dokumen** yang terdiri dari **327 Peraturan Bupati** dan **80 Peraturan Daerah** Kabupaten Banyumas, diimpor dari hasil pengumpulan data skripsi penulis melalui `import_real_data.py` (Perbup) dan `import_perda.py` (Perda) — bukan data dummy dari `seed.py`. Totalnya terdapat **9.229 pasal** dan **5.162 prosedural (55,9%)**, dengan rincian per jenis (Perbup 327 / 6.455 / 3.337, Perda 80 / 2.774 / 1.825).\n\n### 7.1 Data Peraturan Daerah\n\n- **Jumlah:** 83 dokumen tahun 2020-2026 hasil scraping situs JDIH Banyumas.\n- **Proses scraping:** daftar per tahun → halaman detail → unduh PDF → ekstraksi teks → PDF dihapus setelah diekstrak.\n- **Hasil ekstraksi:** 92 ditemukan, 9 gagal ekstraksi teks.\n- **Batas yang dipakai:** maksimal 1.000 halaman dan 180 detik per dokumen.\n- **Status hukum:** hanya tersedia untuk Peraturan Daerah; `catatan_relasi` tersedia sebagai teks mentah (46 dari 83 Perda), belum diparsing menjadi relasi terstruktur. `nomor_tahun` menggunakan prefix `"perda_"` untuk mencegah bentrok dengan Perbup.
+Data saat ini adalah **data asli 469 dokumen** yang terdiri dari **386 Peraturan Bupati** dan **83 Peraturan Daerah** Kabupaten Banyumas, diimpor dari hasil pengumpulan data skripsi penulis melalui `import_real_data.py` (Perbup) dan `import_perda.py` (Perda) — bukan data dummy dari `seed.py`. Totalnya terdapat **9.229 pasal** dan **5.162 prosedural (55,9%)**, dengan rincian per jenis (Perbup 386 / 6.455 / 3.337, Perda 83 / 2.774 / 1.825).\n\n### 7.1 Data Peraturan Daerah\n\n- **Jumlah:** 83 dokumen tahun 2020-2026 hasil scraping situs JDIH Banyumas.\n- **Proses scraping:** daftar per tahun → halaman detail → unduh PDF → ekstraksi teks → PDF dihapus setelah diekstrak.\n- **Hasil ekstraksi:** 92 ditemukan, 9 gagal ekstraksi teks.\n- **Batas yang dipakai:** maksimal 1.000 halaman dan 180 detik per dokumen.\n- **Status hukum:** hanya tersedia untuk Peraturan Daerah; `catatan_relasi` tersedia sebagai teks mentah (46 dari 83 Perda), belum diparsing menjadi relasi terstruktur. `nomor_tahun` menggunakan prefix `"perda_"` untuk mencegah bentrok dengan Perbup.
 
 ### 7.1 Jumlah Dokumen
 
@@ -552,7 +552,7 @@ Peraturan Daerah (Perda) ditambahkan ke database sebagai data tambahan di luar s
 
 - **83 dokumen Peraturan Daerah** tahun **2020–2026** diimpor ke `jdih.db`.
 - **92 dokumen** ditemukan di situs JDIH Banyumas; **9 dokumen** gagal ekstraksi teks (kemungkinan PDF hasil scan/gambar tanpa layer teks); **83 dokumen** berhasil diekstrak dan diimpor dengan `konten_text_asli` terisi penuh.
-- **9.229 pasal** terekstrak dari ke-407 dokumen (Perbup 6.455 + Perda 2.774); **5.162 prosedural (55,9%)**, dengan rincian per jenis (Perbup 327 / 6.455 / 3.337, Perda 80 / 2.774 / 1.825).
+- **9.229 pasal** terekstrak dari ke-469 dokumen (Perbup 6.455 + Perda 2.774); **5.162 prosedural (55,9%)**, dengan rincian per jenis (Perbup 386 / 6.455 / 3.337, Perda 83 / 2.774 / 1.825).
 
 ### 7.7.2 Proses Scraping
 

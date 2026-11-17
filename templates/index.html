@@ -887,6 +887,56 @@
         <p>JDIH Kabupaten Banyumas &copy; 2026</p>
     </footer>
 
+    <!-- Edit Modal -->
+    <div id="editModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background:#fff; padding:32px; border-radius:12px; max-width:600px; width:90%; max-height:90vh; overflow-y:auto;">
+            <h3 style="margin-bottom:20px; color:var(--primary);">Edit Dokumen</h3>
+            <form id="editForm">
+                <input type="hidden" id="editDocId">
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:6px;">Judul Peraturan</label>
+                    <input type="text" id="editJudul" class="form-control" required>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:6px;">Nomor Peraturan</label>
+                    <input type="text" id="editNomor" class="form-control">
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:6px;">Tanggal Terbit</label>
+                    <input type="date" id="editTanggal" class="form-control">
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:6px;">Jenis Dokumen</label>
+                    <select id="editJenis" class="form-control">
+                        <option value="Peraturan Bupati">Peraturan Bupati</option>
+                        <option value="Peraturan Daerah">Peraturan Daerah</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:6px;">Status Hukum</label>
+                    <select id="editStatus" class="form-control">
+                        <option value="Berlaku">Berlaku</option>
+                        <option value="Tidak Berlaku">Tidak Berlaku</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:6px;">Catatan Relasi</label>
+                    <textarea id="editCatatan" class="form-control" style="min-height:80px;"></textarea>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:6px;">Ganti File PDF (opsional)</label>
+                    <input type="file" id="editFile" class="form-control" accept=".pdf">
+                    <div style="font-size:0.8rem; color:var(--text-muted);">Kosongkan jika tidak ingin mengganti file</div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end;">
+                    <button type="button" onclick="closeEditModal()" class="btn-download" style="background:var(--bg-card); border-color:var(--border-light); color:var(--text-dark);">Batal</button>
+                    <button type="submit" class="btn-download">Simpan Perubahan</button>
+                </div>
+            </form>
+            <div id="editAlert" style="margin-top:12px; padding:10px; border-radius:6px; font-size:0.9rem; display:none;"></div>
+        </div>
+    </div>
+
     <script src="/static/app.js"></script>
 </body>
 </html>

@@ -1,10 +1,27 @@
 import math
 import re
+import shutil
+from pathlib import Path
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, File, UploadFile, Form
+from fastapi.responses import JSONResponse
 from app.db import get_db
 from app.pasal_extractor import extract_pasal, potong_penjelasan
 from app.synonyms import sinonim_dari
+
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+
+def _extract_pdf_text(file_path: str) -> str:
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(file_path)
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
+    except ImportError:
+        return ""
+    except Exception:
+        return ""
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -197,7 +214,6 @@ def get_prosedur_untuk_dokumen(doc_row):
     if not procedural_pasals:
         return {
             "status": "tidak_ditemukan_prosedur",
-            "pesan": "Ditemukan struktur pasal, tapi tidak ada yang teridentifikasi sebagai tata cara/prosedur",
             "jumlah_pasal_total": total_pasals,
         }
 
@@ -471,4 +487,149 @@ async def get_document(doc_id: int):
         "url_pdf": row["url_pdf"],
         "konten_text": row["konten_text"],
         "topics": [{"id": tr["id"], "label_topik": tr["label_topik"]} for tr in topic_rows]
+    }
+
+
+@router.post("/upload")
+async def upload_document(
+    judul: str = Form(...),
+    nomor: str = Form(...),
+    tanggal_terbit: str = Form(...),
+    jenis_dokumen: str = Form(...),
+    status_hukum: str = Form("Berlaku"),
+    catatan_relasi: str = Form(""),
+    file: UploadFile = File(...),
+):
+    if not file.filename.lower().endswith(".pdf"):
+        return JSONResponse(status_code=400, content={"error": "Hanya file PDF yang diperbolehkan"})
+
+    file_path = UPLOAD_DIR / file.filename
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    konten_asli = _extract_pdf_text(str(file_path))
+    if not konten_asli.strip():
+        return JSONResponse(status_code=400, content={"error": "Tidak bisa mengekstrak teks dari PDF (mungkin scan/gambar)"})
+
+    konten_bersih = re.sub(r"\s+", " ", konten_asli).strip()
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO documents
+            (judul, nomor, tanggal_terbit, url_pdf, jenis_dokumen, status_hukum, catatan_relasi, konten_text_asli, konten_text)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (judul, nomor, tanggal_terbit, str(file_path), jenis_dokumen, status_hukum, catatan_relasi, konten_asli, konten_bersih))
+        new_id = cur.fetchone()[0]
+
+    return {
+        "status": "berhasil",
+        "message": "Dokumen berhasil diupload",
+        "id": new_id,
+        "judul": judul,
+        "nomor": nomor,
+        "konten_text_asli_len": len(konten_asli),
+    }
+
+
+@router.put("/{doc_id}")
+async def update_document(
+    doc_id: int,
+    judul: str = Form(None),
+    nomor: str = Form(None),
+    tanggal_terbit: str = Form(None),
+    jenis_dokumen: str = Form(None),
+    status_hukum: str = Form(None),
+    catatan_relasi: str = Form(None),
+    file: UploadFile = File(None),
+):
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, konten_text_asli, konten_text, url_pdf FROM documents WHERE id = %s", (doc_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
+
+        updates = []
+        params = []
+
+        if judul is not None:
+            updates.append("judul = %s"); params.append(judul)
+        if nomor is not None:
+            updates.append("nomor = %s"); params.append(nomor)
+        if tanggal_terbit is not None:
+            updates.append("tanggal_terbit = %s"); params.append(tanggal_terbit)
+        if jenis_dokumen is not None:
+            updates.append("jenis_dokumen = %s"); params.append(jenis_dokumen)
+        if status_hukum is not None:
+            updates.append("status_hukum = %s"); params.append(status_hukum)
+        if catatan_relasi is not None:
+            updates.append("catatan_relasi = %s"); params.append(catatan_relasi)
+
+        konten_asli = row["konten_text_asli"]
+        konten_bersih = row["konten_text"]
+
+        if file is not None:
+            if not file.filename.lower().endswith(".pdf"):
+                return JSONResponse(status_code=400, content={"error": "Hanya file PDF yang diperbolehkan"})
+
+            old_path = row["url_pdf"]
+            if old_path and Path(old_path).exists():
+                try:
+                    Path(old_path).unlink()
+                except Exception:
+                    pass
+
+            file_path = UPLOAD_DIR / file.filename
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+
+            konten_asli = _extract_pdf_text(str(file_path))
+            if not konten_asli.strip():
+                return JSONResponse(status_code=400, content={"error": "Tidak bisa mengekstrak teks dari PDF (mungkin scan/gambar)"})
+            konten_bersih = re.sub(r"\s+", " ", konten_asli).strip()
+
+            updates.append("url_pdf = %s"); params.append(str(file_path))
+
+        if konten_asli != row["konten_text_asli"] or konten_bersih != row["konten_text"]:
+            updates.append("konten_text_asli = %s"); params.append(konten_asli)
+            updates.append("konten_text = %s"); params.append(konten_bersih)
+
+        if not updates:
+            return JSONResponse(status_code=400, content={"error": "Tidak ada field yang diupdate"})
+
+        params.append(doc_id)
+        sql = f"UPDATE documents SET {', '.join(updates)} WHERE id = %s RETURNING id"
+        cur.execute(sql, params)
+        updated_id = cur.fetchone()[0]
+
+    return {
+        "status": "berhasil",
+        "message": "Dokumen berhasil diupdate",
+        "id": updated_id,
+    }
+
+
+@router.delete("/{doc_id}")
+async def delete_document(doc_id: int):
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, url_pdf FROM documents WHERE id = %s", (doc_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
+
+        cur.execute("DELETE FROM documents WHERE id = %s", (doc_id,))
+
+        url_pdf = row["url_pdf"]
+        if url_pdf and Path(url_pdf).exists():
+            try:
+                Path(url_pdf).unlink()
+            except Exception:
+                pass
+
+    return {
+        "status": "berhasil",
+        "message": f"Dokumen id {doc_id} berhasil dihapus",
     }
