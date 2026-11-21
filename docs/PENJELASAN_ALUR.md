@@ -1,9 +1,7 @@
 # PENJELASAN ALUR — JDIH Fitur Tambahan
 
-**Tanggal:** 15 November 2026  
-**Cabang git:** `perbaiki-penyaring-pasal`  
-**Hash commit terakhir:** `e696204` (langkah C: bersihkan footer JDIH dan judul bagian di isi pasal)  
-**Catatan:** Dokumen ini menggambarkan kode pada commit `e696204` dan database PostgreSQL `jdih` yang benar-benar ada saat ini.  
+**Tanggal:** 21 November 2026  
+**Catatan:** Dokumen ini menggambarkan kode saat ini (API ekstraksi + fitur tata cara saja; fitur topik/metadata/status dihapus).  
 **Lokasi file:** `docs/PENJELASAN_ALUR.md`  
 
 ---
@@ -30,9 +28,10 @@
        v. memilih dokumen  
        vi. memecah dokumen menjadi pasal  
        vii. menyaring pasal dan membentuk hasil akhir  
-   7.6 Daftar topik, jenis dokumen, tahun, status hukum  
-   7.7 Pembuatan topik otomatis  
-   7.8 Impor data dan backup  
+   7.6 API Ekstraksi PDF (POST /api/v1/ekstrak) — upload PDF, otomatis simpan ke database  
+   7.7 Skrip Bulk (proses_bulk.py) — proses banyak PDF dari folder  
+   7.8 Skrip Export (export_hasil.py) — export hasil olahan ke CSV  
+   7.9 Impor data dan backup  
 8. Satu contoh perjalanan penuh  
 9. Tabel Siapa menjalankan apa  
 10. Tabel fitur → file → fungsi → tabel/kolom  
@@ -44,7 +43,7 @@
 
 ## 0. Kepala dokumen
 
-Dokumen ini ditulis berdasarkan kode yang ada di repositori `jdih-fitur-tambahan` pada cabang `perbaiki-penyaring-pasal`, commit terakhir `e696204`. Database yang digunakan adalah PostgreSQL dengan nama `jdih`. Semua contoh input/output diambil dari menjalankan aplikasi sebenarnya (uvicorn pada port 8765), bukan karangan.
+Dokumen ini ditulis berdasarkan kode yang ada di repositori `jdih-fitur-tambahan` saat ini. Database yang digunakan adalah PostgreSQL dengan nama `jdih`. Semua contoh input/output diambil dari menjalankan aplikasi sebenarnya (uvicorn pada port 8765), bukan karangan.
 
 Password database tidak ditulis di sini. Di kode, password dibaca dari environment variable `DB_PASSWORD` (lihat `app/db.py` baris 11). Nilainya ditulis sebagai **(disembunyikan)**.
 
@@ -73,45 +72,39 @@ jdih-fitur-tambahan/
 ├── app/
 │   ├── main.py              # Pintu gerbang aplikasi (server)
 │   ├── db.py                # Rumah database dan aturan rak buku
+│   ├── pdf_extractor.py     # Ekstrak teks dari PDF + deteksi metadata
 │   ├── pasal_extractor.py   # Pemotong isi buku menjadi pasal
 │   ├── synonyms.py          # Daftar kata yang sama artinya
 │   └── routers/
-│       ├── documents.py     # Semua fitur cari dan tata cara
-│       ├── topics.py        # Daftar topik
-│       ├── metadata.py      # Jenis dokumen dan tahun
-│       ├── status.py        # Status hukum (Berlaku / Tidak Berlaku)
+│       ├── documents.py     # Fitur cari, detail, prosedur, tata cara, upload
+│       ├── ekstraksi.py     # API ekstraksi PDF (upload + simpan ke DB)
 │       └── __init__.py
 ├── templates/
 │   └── index.html           # Halaman web yang dilihat pengguna
 ├── static/
 │   └── app.js               # Otak halaman web (mengambil data dari server)
-├── import_real_data.py      # Memasukkan buku dari file CSV
-├── import_raw_content_auto.py # Mengisi teks mentah buku dari PDF
-├── backup_pg.py             # Membuat salinan cadangan database
-├── terapkan_topik_otomatis.py # Mengelompokkan buku ke topik otomatis
+├── proses_bulk.py           # Skrip proses bulk PDF dari satu folder
+├── export_hasil.py          # Skrip export hasil olahan ke CSV
 ├── docs/
-│   └── usulan_skema.sql     # Rencana rak buku tambahan (belum dipasang)
+│   └── PENJELASAN_ALUR.md   # Dokumen ini
 ├── SPESIFIKASI.md           # Spesifikasi teknis (beberapa bagian usang)
 └── requirements.txt         # Daftar alat yang dibutuhkan aplikasi
 ```
 
 Satu kalimat untuk tiap file penting:
 
-- `app/main.py`: Pintu gerbang. Menyalakan server, memasang halaman web, dan menghubungkan semua fitur.
+- `app/main.py`: Pintu gerbang. Menyalakan server, memasang halaman web, dan menghubungkan fitur tata cara + ekstraksi.
 - `app/db.py`: Aturan rumah database. Membuat tabel, kolom, indeks, dan pemacu (trigger) agar pencarian cepat.
+- `app/pdf_extractor.py`: Mengekstrak teks dari PDF (via pypdf) dan mendeteksi metadata (judul, nomor, tahun, jenis_dokumen).
 - `app/pasal_extractor.py`: Memotong isi buku menjadi pasal-pasal kecil dan membersihkannya.
 - `app/synonyms.py`: Daftar kata yang dianggap sama artinya, misalnya "mengurus" sama dengan "permohonan".
-- `app/routers/documents.py`: Otak utama. Menerima pencarian, detail dokumen, prosedur, dan tanya tata cara.
-- `app/routers/topics.py`: Memberikan daftar topik buku.
-- `app/routers/metadata.py`: Memberikan daftar jenis dokumen dan tahun terbit.
-- `app/routers/status.py`: Memberikan daftar status hukum (Berlaku / Tidak Berlaku).
+- `app/routers/documents.py`: Otak utama. Menerima pencarian, detail dokumen, prosedur, tanya tata cara, dan upload PDF.
+- `app/routers/ekstraksi.py`: API ekstraksi PDF — upload PDF, ekstrak teks, deteksi metadata, otomatis simpan ke tabel `documents`.
 - `templates/index.html`: Tampilan halaman web yang dilihat pengguna.
 - `static/app.js`: Program di browser yang mengambil data dari server saat pengguna klik atau ketik.
-- `import_real_data.py`: Memasukkan data buku asli dari file CSV ke database.
-- `import_raw_content_auto.py`: Mengambil teks mentah dari PDF buku melalui URL.
-- `backup_pg.py`: Membuat salinan cadangan semua data database ke file.
-- `terapkan_topik_otomatis.py`: Mengelompokkan buku ke topik secara otomatis dengan matematika (TF-IDF + KMeans).
-- `docs/usulan_skema.sql`: Rencana rak buku tambahan yang belum dipasang ke database.
+- `proses_bulk.py`: Skrip batch untuk memproses banyak PDF dari satu folder dan menyimpannya ke database.
+- `export_hasil.py`: Skrip untuk export hasil olahan (`konten_text_asli`, `konten_tsv`, dll) ke CSV.
+- `requirements.txt`: Daftar dependency Python yang dibutuhkan.
 
 [TERBUKTI] Semua file di atas ada dan telah dibaca.
 
@@ -599,46 +592,92 @@ Ini adalah fitur terbesar. Dibagi menjadi 7 sub-alur.
 
 ---
 
-### 7.7 Pembuatan topik otomatis (terapkan_topik_otomatis.py)
+### 7.6 API Ekstraksi PDF (POST /api/v1/ekstrak)
 
-**a. Apa gunanya:** Mengelompokkan semua buku ke topik secara otomatis tanpa menentukan topik secara manual satu per satu.  
-**b. Siapa yang memicunya:** Operasi menjalankan skrip `python terapkan_topik_otomatis.py` di folder proyek.  
+**a. Apa gunanya:** Menerima upload PDF, mengekstrak teks, mendeteksi metadata (judul, nomor, tahun, jenis_dokumen), lalu **otomatis menyimpan** ke tabel `documents`.  
+**b. Siapa yang memicunya:** Client (Postman, skrip, atau frontend) memanggil `POST /api/v1/ekstrak` dengan file PDF.  
 **c. Alur langkah demi langkah:**
-1. Ambil semua judul buku dari tabel `documents`.
-2. Bersihkan judul: hapus tanda bintang dan angka, hapus kata awam (stop words seperti "banyumas", "tahun", "peraturan", dll).
-3. Buat daftar kata dan gabungan kata dua (bigram) dari setiap judul.
-4. Hitung bobot TF-IDF untuk setiap kata (kata yang jarang muncul diberi bobot lebih tinggi).
-5. Ubah setiap judul jadi vektor angka.
-6. Kelompokkan vektor menjadi 10 kelompok (KMeans dengan k=10, acaka diatur 42 agar hasil sama setiap kali).
-7. Untuk setiap kelompok, ambil 3 kata dengan bobot tertinggi sebagai nama topik.
-8. Hapus topik lama dari tabel `topics` dan `document_topics`, masukkan topik baru dan hubungan buku-topik.
+1. Validasi API key (`x-api-key`).
+2. Validasi file berakhiran `.pdf` dan ukuran di bawah batas (default 20 MB).
+3. Ekstrak teks dari PDF via `ekstrak_teks()` (`app/pdf_extractor.py`).
+4. Jika status "rusak" atau "tanpa_teks" → return 422.
+5. Deteksi metadata dari teks via `deteksi_metadata()` (`app/pdf_extractor.py`).
+6. Jika `judul` diberikan via form → pakai itu; jika tidak → pakai hasil deteksi otomatis.
+7. INSERT ke tabel `documents` (judul, nomor, tanggal_terbit, jenis_dokumen, konten_text_asli, konten_text, nomor_tahun).
+8. Trigger `trg_documents_tsv` otomatis mengisi `konten_tsv`.
+9. Return JSON berisi `id`, `judul`, `konten_text_asli`, `konten_tsv`, dll.
 
 **d. KODE-NYA DI MANA:**
 
 | Langkah | File | Fungsi | Baris | Apa yang dikerjakan |
 |---------|------|--------|-------|---------------------|
-| Kelompokkan topik | `terapkan_topik_otomatis.py` | (skrip utama) | 8-104 | TF-IDF + KMeans k=10, simpan ke DB |
+| Terima upload | `app/routers/ekstraksi.py` | `ekstrak` | 37-160 | Validasi, ekstrak, simpan |
+| Ekstrak teks PDF | `app/pdf_extractor.py` | `ekstrak_teks` | 23-94 | Baca PDF via pypdf, return teks |
+| Deteksi metadata | `app/pdf_extractor.py` | `deteksi_metadata` | 97-156 | Regex cari judul/nomor/tahun/jenis |
 
-**e. Tabel dan kolom database yang dibaca/ditulis:** Membaca `documents` (id, judul). Menulis `topics` (id, label_topik, top_keywords) dan `document_topics` (document_id, topic_id). [TERBUKTI] (baris 85-96).  
-**f. Contoh nyata:** 10 topik, contoh label "anggaran belanja pendapatan", "lembaga kemasyarakatan desa", "standarisasi biaya harga pengadaan" [TERBUKTI] (dari `endpoint_contoh.py` GET /api/topics).  
-**g. Kalau gagal/kosong:** Jika gagal, transaksi dibatalkan (rollback) dan cetak "FAILED" [TERBUKTI] (baris 100-102).  
-**h. Batasan:** Topik berasal dari judul saja, bukan isi buku, sehingga klasifikasi tidak selalu akurat [DUGAAN] (skrip hanya baca `judul`, baris 8-10).  
-**i. Intinya dalam satu kalimat:** Skrip ini secara otomatis membagi buku ke 10 topik menggunakan matematika pencocokan kata.
+**e. Tabel dan kolom database yang ditulis:** `documents` (judul, nomor, tanggal_terbit, jenis_dokumen, konten_text_asli, konten_text, nomor_tahun). `konten_tsv` diisi otomatis oleh trigger.  
+**f. Contoh nyata:** POST PDF "Perbup 48/2020 Pajak Restoran" → response 200 dengan `id=470`, `judul="Peraturan Bupati Nomor 48 Tahun 2020..."`, `disimpan=true`.  
+**g. Kalau gagal/kosong:** 400 jika bukan PDF, 413 jika terlalu besar, 422 jika rusak/tanpa teks, 401 jika API key salah.  
+**h. Batasan:** Metadata deteksi hanya memindai 4.000 karakter pertama. Jika pola peraturan tidak ditemukan, judul/nomor/tahun bisa None.  
+**i. Intinya dalam satu kalimat:** Fitur ini menerima PDF dan langsung menyimpannya ke database dengan metadata yang terdeteksi otomatis.
 
 ---
 
-### 7.8 Impor data dan backup
+### 7.7 Skrip Bulk (proses_bulk.py)
 
-**a. Apa gunanya:** Memasukkan data buku ke database dan membuat salinan cadangan.  
-**b. Siapa yang memicunya:** Operasi menjalankan skrip `python import_real_data.py`, `python import_raw_content_auto.py`, `python backup_pg.py` di folder proyek.  
+**a. Apa gunanya:** Memproses banyak PDF dari satu folder sekaligus dan menyimpannya ke database.  
+**b. Siapa yang memicunya:** Operasi menjalankan `python proses_bulk.py --folder ./pdf_input` di server.  
+**c. Alur langkah demi langkah:**
+1. Baca semua file `.pdf` di folder yang diberikan.
+2. Untuk tiap PDF: ekstrak teks → deteksi metadata → INSERT ke `documents`.
+3. Tampilkan progress per file dan ringkasan akhir (sukses/tanpa teks/gagal).
+
+**d. KODE-NYA DI MANA:**
+
+| Langkah | File | Fungsi | Baris | Apa yang dikerjakan |
+|---------|------|--------|-------|---------------------|
+| Proses tiap PDF | `proses_bulk.py` | `proses_satu_pdf` | 21-67 | Ekstrak + simpan |
+| Loop semua PDF | `proses_bulk.py` | `main` | 70-105 | Argparse + loop + ringkasan |
+
+**e. Tabel dan kolom database:** Menulis ke `documents` (sama seperti endpoint ekstraksi).  
+**f. Contoh nyata:** `python proses_bulk.py --folder ./pdf_input` → 50 PDF, 48 sukses, 2 tanpa teks.  
+**g. Kalau gagal/kosong:** File tidak terbaca → status "gagal"; PDF scan/gambar → status "tanpa_teks".  
+**h. Batasan:** Hanya file `.pdf` di folder yang diproses (tidak rekursif).  
+**i. Intinya dalam satu kalimat:** Skrip ini memproses banyak PDF dari folder sekaligus untuk diisi ke database.
+
+---
+
+### 7.8 Skrip Export (export_hasil.py)
+
+**a. Apa gunanya:** Export hasil olahan dari database ke CSV untuk dikirim ke pembimbing/pengurus JDIA.  
+**b. Siapa yang memicunya:** Operasi menjalankan `python export_hasil.py --output hasil.csv`.  
+**c. Alur langkah demi langkah:**
+1. Query semua baris dari tabel `documents`.
+2. Tulis ke file CSV dengan kolom: id, judul, nomor, tanggal_terbit, jenis_dokumen, konten_text_asli, konten_tsv, nomor_tahun.
+
+**d. KODE-NYA DI MANA:**
+
+| Langkah | File | Fungsi | Baris | Apa yang dikerjakan |
+|---------|------|--------|-------|---------------------|
+| Export ke CSV | `export_hasil.py` | `export` | 17-50 | Query DB, tulis CSV |
+
+**e. Tabel dan kolom database:** Membaca `documents` (id, judul, nomor, tanggal_terbit, jenis_dokumen, konten_text_asli, konten_tsv, nomor_tahun).  
+**f. Contoh nyata:** `python export_hasil.py --output hasil.csv` → file CSV dengan ratusan baris.  
+**g. Kalau gagal/kosong:** Jika tidak ada data, CSV hanya berisi header.  
+**h. Batasan:** Opsi `--limit` membatasi jumlah baris; `--only-with-text` hanya export dokumen yang punya `konten_text_asli`.  
+**i. Intinya dalam satu kalimat:** Skrip ini mengubah data di database menjadi file CSV yang siap dikirim.
+
+---
+
+### 7.9 Impor data dan backup (legacy)
+
+**a. Apa gunanya:** (Legacy) Memasukkan data buku ke database dan membuat salinan cadangan.  
+**b. Siapa yang memicunya:** Operasi menjalankan skrip lama seperti `import_real_data.py`, `import_raw_content_auto.py`, `backup_pg.py` (tidak lagi diperlukan untuk fitur tata cara + ekstraksi).  
 **c. Alur langkah demi langkah (import_real_data.py):**
 1. Baca file `raw_documents_export.csv`.
 2. Periksa apakah ada data bukan Perbup (jika ada, batalkan untuk menghindari kehilangan data).
-3. Hapus data lama di `document_topics`, `documents`, `topics`.
-4. Masukkan 10 topik manual dari daftar `TOPICS` (baris 12-23).
-5. Masukkan 386 buku Perbup dengan `tanggal_terbit = {tahun}-01-01`.
-6. Cocokkan setiap buku dengan topik berdasarkan kata kunci judul (`match_topics`).
-7. Masukkan hubungan buku-topik.
+3. Hapus data lama di `documents`.
+4. Masukkan 386 buku Perbup dengan `tanggal_terbit = {tahun}-01-01`.
 
 **d. KODE-NYA DI MANA:**
 
@@ -648,11 +687,11 @@ Ini adalah fitur terbesar. Dibagi menjadi 7 sub-alur.
 | Isi teks asli | `import_raw_content_auto.py` | (skrip utama) | 1-23 | Ambil PDF dari URL, simpan teks |
 | Backup database | `backup_pg.py` | (skrip utama) | 1-31 | Ambil semua baris, tulis file SQL |
 
-**e. Tabel dan kolom database:** `documents`, `topics`, `document_topics`.  
-**f. Contoh nyata:** `import_real_data.py` mencetak "469 dokumen diimpor" dan jumlah per topik [TERBUKTI] (baris 131-143).  
-**g. Kalau gagal/kosong:** Jika ada data bukan Perbup, skrip berhenti dan tidak menghapus apa pun [TERBUKTI] (baris 60-68).  
-**h. Batasan:** `konten_text_asli` sengaja NULL saat impor; diisi nanti oleh `import_raw_content_auto.py` [TERBUKTI] (baris 104-105).  
-**i. Intinya dalam satu kalimat:** Skrip ini memasukkan buku peraturan ke database dan membuat salinan cadangan data.
+**e. Tabel dan kolom database:** `documents`.  
+**f. Contoh nyata:** `import_real_data.py` mencetak "469 dokumen diimpor".  
+**g. Kalau gagal/kosong:** Jika ada data bukan Perbup, skrip berhenti dan tidak menghapus apa pun.  
+**h. Batasan:** Skrip ini legacy dan tidak lagi diperlukan untuk alur baru (API ekstraksi + bulk).  
+**i. Intinya dalam satu kalimat:** Skrip lama untuk impor data awal dari CSV.
 
 ---
 
@@ -698,11 +737,10 @@ Pengguna mengetik **"cara bayar pajak restoran"** di halaman web sampai hasil mu
 
 | Perintah | Dijalankan dari folder | Kapan dipakai | Fitur yang bergantung |
 |----------|------------------------|---------------|----------------------|
-| `python import_real_data.py` | Folder proyek (`D:\KULIAH BRODI\magang\jdih-fitur-tambahan`) | Saat memasukkan data buku asli pertama kali | Semua fitur cari dan tata cara |
-| `python import_raw_content_auto.py` | Folder proyek | Saat mengisi teks asli dari PDF | Ekstraksi pasal dan tata cara |
-| `python terapkan_topik_otomatis.py` | Folder proyek | Saat mengelompokkan buku ke topik otomatis | Filter topik di halaman web |
-| `python backup_pg.py` | Folder proyek | Saat membuat cadangan data | Cadangan data (tidak ada fitur aplikasi) |
-| `$env:DB_PASSWORD="(disembunyikan)"; .\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8765` | Folder proyek | Saat menyalakan server aplikasi | Semua fitur API dan halaman web |
+| `python proses_bulk.py --folder ./pdf_input` | Folder proyek / server | Saat memproses banyak PDF dari folder | Ekstraksi + simpan ke DB |
+| `python export_hasil.py --output hasil.csv` | Folder proyek / server | Saat export hasil olahan ke CSV | Fitur tata cara (data sudah di DB) |
+| `$env:DB_PASSWORD="(disembunyikan)"; .\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8765` | Folder proyek / server | Saat menyalakan server aplikasi | Semua fitur API dan halaman web |
+| `python -c "from app.db import init_db; init_db()"` | Folder proyek / server | Saat pertama kali inisialisasi database | Semua fitur |
 
 [TERBUKTI] Semua skrip ada dan telah dibaca. Perintah uvicorn telah diuji secara langsung (port 8765).
 
@@ -715,20 +753,15 @@ Pengguna mengetik **"cara bayar pajak restoran"** di halaman web sampai hasil mu
 | Halaman utama | `app/main.py` | `index` | — |
 | Tampilan web | `templates/index.html` | — | — |
 | Otak halaman web | `static/app.js` | `fetchDocuments`, `renderTataCaraResult` | — |
-| Daftar/pencarian buku | `app/routers/documents.py` | `get_documents` | `documents`, `document_topics`, `topics` |
-| Detail buku | `app/routers/documents.py` | `get_document` | `documents`, `document_topics`, `topics` |
+| Daftar/pencarian buku | `app/routers/documents.py` | `get_documents` | `documents` |
+| Detail buku | `app/routers/documents.py` | `get_document` | `documents` |
 | Prosedur buku | `app/routers/documents.py` | `get_document_prosedur`, `get_prosedur_untuk_dokumen` | `documents` (konten_text_asli) |
 | Tanya tata cara | `app/routers/documents.py` | `tata_cara`, `_cari_tahap`, `_cari_pasal_relevan`, `bangun_tsquery`, `_extract_main_keywords`, `_pasal_memenuhi_keyword`, `_is_pasal_definisi`, `_is_dokumen_perubahan` | `documents` (konten_tsv, konten_text_asli) |
 | Ekstrak pasal | `app/pasal_extractor.py` | `extract_pasal`, `potong_penjelasan`, `bersihkan_isi_pasal`, `is_procedural`, `_bangun_hasil_pasal` | — (teks dari konten_text_asli) |
 | Sinonim | `app/synonyms.py` | `sinonim_dari` | — |
-| Daftar topik | `app/routers/topics.py` | `get_topics` | `topics`, `document_topics` |
-| Jenis dokumen | `app/routers/metadata.py` | `get_jenis_dokumen` | `documents` |
-| Tahun | `app/routers/metadata.py` | `get_tahun` | `documents` |
-| Status hukum | `app/routers/status.py` | `daftar_status_hukum` | `documents` |
-| Topik otomatis | `terapkan_topik_otomatis.py` | — | `topics`, `document_topics`, `documents` |
-| Impor data | `import_real_data.py` | `import_data` | `documents`, `topics`, `document_topics` |
-| Isi teks asli | `import_raw_content_auto.py` | — | `documents` (konten_text_asli) |
-| Backup | `backup_pg.py` | — | `documents`, `topics`, `document_topics` |
+| API Ekstraksi PDF | `app/routers/ekstraksi.py` | `ekstrak` | `documents` (INSERT) |
+| Proses Bulk PDF | `proses_bulk.py` | `proses_satu_pdf`, `main` | `documents` (INSERT) |
+| Export Hasil | `export_hasil.py` | `export` | `documents` (SELECT) |
 | Atur database | `app/db.py` | `init_db`, `get_db`, `documents_tsv_update` | Semua tabel |
 
 [TERBUKTI] Semua entri sesuai dengan kode yang dibaca.
@@ -773,7 +806,7 @@ Berikut adalah rencana rak buku tambahan dari `docs/usulan_skema.sql` yang **bel
 
 ## 13. Cara mengecek sendiri
 
-Berikut adalah kumpulan perintah read-only (tidak mengubah apa pun) untuk membuktikan isi dokumen ini. Jalankan dari folder proyek `D:\KULIAH BRODI\magang\jdih-fitur-tambahan`.
+Berikut adalah kumpulan perintah read-only (tidak mengubah apa pun) untuk membuktikan isi dokumen ini. Jalankan dari folder proyek.
 
 ### 13.1 Cek struktur database
 
@@ -788,14 +821,11 @@ cur.execute(\"SELECT table_name, (SELECT COUNT(*) FROM information_schema.column
 for r in cur.fetchall(): print(r['table_name'], r['col_count'])
 cur.execute(\"SELECT COUNT(*) FROM documents\")
 print('documents:', cur.fetchone()[0])
-cur.execute(\"SELECT COUNT(*) FROM topics\")
-print('topics:', cur.fetchone()[0])
-cur.execute(\"SELECT COUNT(*) FROM document_topics\")
-print('document_topics:', cur.fetchone()[0])
 c.close()
 "
 ```
-Hasil yang diharapkan: documents 469, topics 10, document_topics 469.
+
+Hasil yang diharapkan: documents (jumlah sesuai data).
 
 ### 13.2 Cek trigger dan indeks
 

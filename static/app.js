@@ -378,12 +378,6 @@ function renderDocumentTable(data, paginationData) {
                         </svg>
                         Download
                     </a>
-                    <button class="btn-download" style="background:var(--bg-card); border-color:var(--primary); color:var(--primary); margin-left:4px;" onclick="openEditDoc(${doc.id}, ${JSON.stringify(doc.judul || '')}, ${JSON.stringify(doc.nomor || '')}, ${JSON.stringify(doc.tanggal_terbit || '')}, ${JSON.stringify(doc.jenis_dokumen || '')}, ${JSON.stringify(doc.status_hukum || '')}, ${JSON.stringify(doc.catatan_relasi || '')})" title="Edit">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    </button>
-                    <button class="btn-download" style="background:var(--bg-card); border-color:#C62828; color:#C62828; margin-left:4px;" onclick="deleteDoc(${doc.id}, ${JSON.stringify(doc.judul || '')})" title="Hapus">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
                 </td>
             </tr>
         `;
@@ -632,98 +626,5 @@ if (searchInput) searchInput.addEventListener('input', onSearchInput);
 if (jenisFilter) jenisFilter.addEventListener('change', onJenisChange);
 if (statusFilter) statusFilter.addEventListener('change', onStatusChange);
 if (resetBtn) resetBtn.addEventListener('click', resetFilters);
-
-// --- Edit / Delete functions ---
-function openEditDoc(id, judul, nomor, tanggal, jenis, status, catatan) {
-    document.getElementById('editDocId').value = id;
-    document.getElementById('editJudul').value = judul || '';
-    document.getElementById('editNomor').value = nomor || '';
-    document.getElementById('editTanggal').value = tanggal || '';
-    document.getElementById('editJenis').value = jenis || 'Peraturan Bupati';
-    document.getElementById('editStatus').value = status || 'Berlaku';
-    document.getElementById('editCatatan').value = catatan || '';
-    document.getElementById('editFile').value = '';
-    document.getElementById('editAlert').style.display = 'none';
-    document.getElementById('editModal').style.display = 'flex';
-}
-
-function closeEditModal() {
-    document.getElementById('editModal').style.display = 'none';
-}
-
-async function deleteDoc(id, judul) {
-    if (!confirm(`Yakin ingin menghapus dokumen "${judul}"? Tindakan ini tidak dapat dibatalkan.`)) return;
-    try {
-        const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (!res.ok) {
-            alert(data.error || 'Gagal menghapus dokumen');
-            return;
-        }
-        alert(data.message);
-        loadDocuments();
-    } catch (err) {
-        alert('Terjadi kesalahan jaringan, coba lagi nanti');
-    }
-}
-
-// Edit form submit
-const editForm = document.getElementById('editForm');
-const editAlert = document.getElementById('editAlert');
-if (editForm) {
-    editForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        editAlert.style.display = 'none';
-
-        const docId = document.getElementById('editDocId').value;
-        const formData = new FormData();
-        const judul = document.getElementById('editJudul').value.trim();
-        const nomor = document.getElementById('editNomor').value.trim();
-        const tanggal = document.getElementById('editTanggal').value.trim();
-        const jenis = document.getElementById('editJenis').value;
-        const status = document.getElementById('editStatus').value;
-        const catatan = document.getElementById('editCatatan').value.trim();
-        const file = document.getElementById('editFile').files[0];
-
-        if (judul) formData.append('judul', judul);
-        if (nomor) formData.append('nomor', nomor);
-        if (tanggal) formData.append('tanggal_terbit', tanggal);
-        if (jenis) formData.append('jenis_dokumen', jenis);
-        if (status) formData.append('status_hukum', status);
-        if (catatan) formData.append('catatan_relasi', catatan);
-        if (file) formData.append('file', file);
-
-        try {
-            const res = await fetch(`/api/documents/${docId}`, {
-                method: 'PUT',
-                body: formData,
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                editAlert.style.display = 'block';
-                editAlert.style.background = '#FDEDEC';
-                editAlert.style.color = '#C62828';
-                editAlert.textContent = data.error || 'Gagal mengupdate dokumen';
-                return;
-            }
-            editAlert.style.display = 'block';
-            editAlert.style.background = '#E8F5E9';
-            editAlert.style.color = '#2E7D32';
-            editAlert.textContent = data.message;
-            closeEditModal();
-            loadDocuments();
-        } catch (err) {
-            editAlert.style.display = 'block';
-            editAlert.style.background = '#FDEDEC';
-            editAlert.style.color = '#C62828';
-            editAlert.textContent = 'Terjadi kesalahan jaringan, coba lagi nanti';
-        }
-    });
-}
-
-// Close modal when clicking outside
-document.getElementById('editModal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'editModal') closeEditModal();
-});
 
 init();
